@@ -929,83 +929,133 @@
             exportStatus.innerText = "⏳ Preparing export...";
 
             const viewportEl = document.getElementById('viewport');
+
+            // ---- High-DPI canvas so exported video isn't blurry/pixelated ----
+            const dpr = Math.min(window.devicePixelRatio || 1, 2); // cap at 2x to keep perf sane
+            const cssW = viewportEl.clientWidth || 640;
+            const cssH = viewportEl.clientHeight || 360;
             const canvas = document.createElement('canvas');
-            canvas.width = viewportEl.clientWidth || 640;
-            canvas.height = viewportEl.clientHeight || 360;
+            canvas.width = Math.round(cssW * dpr);
+            canvas.height = Math.round(cssH * dpr);
             const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr); // all draw calls below use CSS-pixel coordinates
+
             const svgElement = document.querySelector('.character-wrapper svg');
+            const characterWrapperEl = document.getElementById('characterWrapper');
+            const assetWrapperEls = () => Array.from(document.querySelectorAll('.asset-wrapper'));
 
-            // Reusable Image element — avoids creating a new Blob URL + Image
-            // on every single frame, which caused visible flicker because
-            // each frame took a different amount of time to decode/load.
-            const frameImg = new Image();
-            let frameImgReady = false;
-            let pendingUrl = null;
-            let lastRequestedSvgString = null;
-
-            frameImg.onload = () => {
-                frameImgReady = true;
-                if (pendingUrl) { URL.revokeObjectURL(pendingUrl); pendingUrl = null; }
-            };
-
-            // Kicks off loading the current SVG state into frameImg, but does
-            // NOT wait for it — drawFrame() below always paints using the
-            // most recently *completed* load, so the canvas never shows a
-            // half-updated/blank frame.
-            function requestSvgUpdate() {
-                if (!svgElement) return;
-                const svgData = new XMLSerializer().serializeToString(svgElement);
-                if (svgData === lastRequestedSvgString) return; // pose unchanged, skip re-encode
-                lastRequestedSvgString = svgData;
-                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(svgBlob);
-                frameImg.src = url;
-                pendingUrl = url;
+            // Snapshot of the viewport background (color or image), applied every frame.
+            const bgImageUrl = (() => {
+                const bg = viewportEl.style.backgroundImage;
+                const m = bg && bg.match(/url\(["']?(.*?)["']?\)/);
+                return m ? m[1] : null;
+            })();
+            let bgImageEl = null;
+            if (bgImageUrl) {
+                bgImageEl = new Image();
+                bgImageEl.src = bgImageUrl;
             }
 
-            // Draws exactly one frame onto the canvas using whatever the
-            // latest fully-loaded character image is. Awaited by the first
-            // call in the caller so the very first painted frame is guaranteed
-            // real before recording starts.
-            function drawFrame() {
+            // Reusable Image for the CHARACTER only — its pose (mouth/arm) changes
+            // during playback, so it's re-encoded from SVG only when the pose
+            // actually changes (not every frame), keeping things smooth.
+            const charImg = new Image();
+            let charImgReady = false;
+            let pendingCharUrl = null;
+            let lastCharSvgString = null;
+
+            function encodeCharacterNow() {
                 return new Promise((resolve) => {
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
                     if (!svgElement) { resolve(); return; }
-
-                    if (!frameImgReady) {
-                        // First ever frame: must block until the image is
-                        // actually loaded, otherwise we'd start recording
-                        // on a blank canvas again.
-                        const svgData = new XMLSerializer().serializeToString(svgElement);
-                        lastRequestedSvgString = svgData;
-                        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                        const url = URL.createObjectURL(svgBlob);
-                        frameImg.onload = () => {
-                            frameImgReady = true;
-                            ctx.drawImage(frameImg, 100, 40, 180, 240);
-                            URL.revokeObjectURL(url);
-                            frameImg.onload = () => {
-                                frameImgReady = true;
-                                if (pendingUrl) { URL.revokeObjectURL(pendingUrl); pendingUrl = null; }
-                            };
-                            resolve();
-                        };
-                        frameImg.src = url;
-                        return;
-                    }
-
-                    // Normal case: draw the last-completed image immediately
-                    // (no waiting), then kick off loading the next pose.
-                    ctx.drawImage(frameImg, 100, 40, 180, 240);
-                    requestSvgUpdate();
-                    resolve();
+                    const svgData = new XMLSerializer().serializeToString(svgElement);
+                    if (svgData === lastCharSvgString && charImgReady) { resolve(); return; }
+                    lastCharSvgString = svgData;
+                    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(svgBlob);
+                    const prevUrl = pendingCharUrl;
+                    pendingCharUrl = url;
+                    charImg.onload = () => {
+                        charImgReady = true;
+                        if (prevUrl) URL.revokeObjectURL(prevUrl);
+                        resolve();
+                    };
+                    charImg.onerror = () => { if (prevUrl) URL.revokeObjectURL(prevUrl); resolve(); };
+                    charImg.src = url;
                 });
             }
 
+            // Pre-load any uploaded asset images so drawFrame() never has to
+            // wait mid-loop (which caused the lag/flicker).
+            const assetImgCache = new Map(); // imgSrc -> HTMLImageElement (loaded)
+            async function preloadAssetImages() {
+                const imgs = assetWrapperEls().map(w => w.querySelector('img')).filter(Boolean);
+                await Promise.all(imgs.map(imgEl => new Promise((resolve) => {
+                    if (assetImgCache.has(imgEl.src)) { resolve(); return; }
+                    const im = new Image();
+                    im.onload = () => { assetImgCache.set(imgEl.src, im); resolve(); };
+                    im.onerror = resolve;
+                    im.src = imgEl.src;
+                })));
+            }
+
+            // Reads the live translate3d(x,y,z) scale(s) transform of an
+            // element exactly as the user has positioned/scaled it on screen —
+            // this is what fixes the "character displaced in video" bug: the
+            // old code always drew at a hardcoded (100,40) regardless of where
+            // the character actually was.
+            function readTransform(el) {
+                const t = el.style.transform || '';
+                const m3d = t.match(/translate3d\(([-\d.]+)px,\s*([-\d.]+)px,\s*([-\d.]+)px\)/);
+                const mS = t.match(/scale\(([-\d.]+)\)/);
+                return {
+                    x: m3d ? parseFloat(m3d[1]) : 0,
+                    y: m3d ? parseFloat(m3d[2]) : 0,
+                    s: mS ? parseFloat(mS[1]) : 1
+                };
+            }
+
+            // Draws exactly one full frame (background + assets + character)
+            // at their CURRENT live positions. Returns a promise so the first
+            // call can be awaited to guarantee a real (non-blank) first frame.
+            async function drawFrame() {
+                // Background
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, cssW, cssH);
+                if (bgImageEl && bgImageEl.complete && bgImageEl.naturalWidth > 0) {
+                    // cover-fit, matching CSS background-size: cover
+                    const ir = bgImageEl.naturalWidth / bgImageEl.naturalHeight;
+                    const cr = cssW / cssH;
+                    let dw, dh, dx, dy;
+                    if (ir > cr) { dh = cssH; dw = dh * ir; dx = (cssW - dw) / 2; dy = 0; }
+                    else { dw = cssW; dh = dw / ir; dx = 0; dy = (cssH - dh) / 2; }
+                    ctx.drawImage(bgImageEl, dx, dy, dw, dh);
+                }
+
+                // Uploaded assets, each at its own live transform
+                for (const w of assetWrapperEls()) {
+                    const imgEl = w.querySelector('img');
+                    if (!imgEl) continue;
+                    const cached = assetImgCache.get(imgEl.src);
+                    if (!cached || !cached.complete) continue;
+                    const { x, y, s } = readTransform(w);
+                    const dw = (imgEl.clientWidth || 100) * s;
+                    const dh = dw * (cached.naturalHeight / cached.naturalWidth);
+                    ctx.drawImage(cached, x, y, dw, dh);
+                }
+
+                // Character, at its live transform (fixes displacement bug)
+                if (svgElement && charImgReady) {
+                    const { x, y, s } = readTransform(characterWrapperEl);
+                    const baseW = 180, baseH = 240; // matches .character-wrapper CSS size
+                    ctx.drawImage(charImg, x, y, baseW * s, baseH * s);
+                }
+            }
+
             try {
-                // Paint the first real frame BEFORE creating the stream/recorder.
+                // Encode + paint the first real frame BEFORE creating the
+                // stream/recorder, so recording never starts on a blank canvas.
+                await preloadAssetImages();
+                await encodeCharacterNow();
                 await drawFrame();
 
                 const canvasStream = canvas.captureStream(30);
@@ -1048,10 +1098,21 @@
                 };
 
                 let isRecording = true;
+                let encodingInFlight = false;
 
-                async function renderLoop() {
+                // drawFrame() itself is synchronous/instant (just canvas ops on
+                // already-loaded images), so calling it every rAF tick is smooth.
+                // Re-encoding the character's SVG (for mouth/arm pose changes) is
+                // kicked off in parallel without blocking the draw, so it never
+                // causes frame drops — the canvas just picks up the new pose
+                // whenever encodeCharacterNow() finishes.
+                function renderLoop() {
                     if (!isRecording) return;
-                    await drawFrame();
+                    drawFrame();
+                    if (!encodingInFlight) {
+                        encodingInFlight = true;
+                        encodeCharacterNow().finally(() => { encodingInFlight = false; });
+                    }
                     requestAnimationFrame(renderLoop);
                 }
 
