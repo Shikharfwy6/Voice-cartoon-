@@ -964,10 +964,61 @@
             let pendingCharUrl = null;
             let lastCharSvgString = null;
 
+            // Bakes the LIVE computed pose (mouth scaleY, arm rotate) from the
+            // real on-screen elements into explicit, self-contained SVG
+            // attributes on a clone before serializing.
+            //
+            // Why this is needed: mouth/left-arm use
+            //   transform-origin: center center; transform-box: fill-box;
+            // which is defined in the page's external <style> tag. When the
+            // SVG is serialized on its own (XMLSerializer) and loaded as a
+            // standalone image, that external stylesheet rule does NOT travel
+            // with it — so transform-box:fill-box is lost, the scaleY()/
+            // rotate() ends up pivoting around the wrong origin (e.g. the SVG's
+            // top-left / viewBox origin instead of the mouth's own center),
+            // which pushed the mouth shape off-canvas or shrank it to nothing.
+            // Converting to an explicit SVG-space transform-origin fixes it.
+            function buildSelfContainedSvgString() {
+                const clone = svgElement.cloneNode(true);
+
+                const applyFillBoxTransform = (liveEl, cloneSelector) => {
+                    if (!liveEl) return;
+                    const cloneEl = clone.querySelector(cloneSelector);
+                    if (!cloneEl) return;
+                    const liveTransform = liveEl.style.transform;
+                    if (!liveTransform || liveTransform === 'none') {
+                        cloneEl.removeAttribute('transform');
+                        return;
+                    }
+                    // Get the element's own bounding box (in local SVG user
+                    // units) so we can pivot around its true center, exactly
+                    // like transform-box:fill-box does live in the DOM.
+                    const bbox = liveEl.getBBox();
+                    const cx = bbox.x + bbox.width / 2;
+                    const cy = bbox.y + bbox.height / 2;
+
+                    const scaleMatch = liveTransform.match(/scaleY\(([-\d.]+)\)/);
+                    const rotateMatch = liveTransform.match(/rotate\(([-\d.]+)deg\)/);
+
+                    let svgTransform = `translate(${cx} ${cy})`;
+                    if (scaleMatch) svgTransform += ` scale(1 ${scaleMatch[1]})`;
+                    if (rotateMatch) svgTransform += ` rotate(${rotateMatch[1]})`;
+                    svgTransform += ` translate(${-cx} ${-cy})`;
+
+                    cloneEl.setAttribute('transform', svgTransform);
+                };
+
+                applyFillBoxTransform(document.getElementById('mouth'), '#mouth');
+                applyFillBoxTransform(document.getElementById('left-arm'), '#left-arm');
+                applyFillBoxTransform(document.getElementById('right-arm'), '#right-arm');
+
+                return new XMLSerializer().serializeToString(clone);
+            }
+
             function encodeCharacterNow() {
                 return new Promise((resolve) => {
                     if (!svgElement) { resolve(); return; }
-                    const svgData = new XMLSerializer().serializeToString(svgElement);
+                    const svgData = buildSelfContainedSvgString();
                     if (svgData === lastCharSvgString && charImgReady) { resolve(); return; }
                     lastCharSvgString = svgData;
                     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
