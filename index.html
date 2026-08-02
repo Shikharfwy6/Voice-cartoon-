@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Full Body Cartoon Voice Studio</title>
+    <title>2D Indian Animation Studio</title>
     
     <style>
         * {
@@ -14,7 +14,7 @@
         }
 
         body {
-            background-color: #1a1a2e;
+            background-color: #121212;
             color: #fff;
         }
 
@@ -23,10 +23,9 @@
             height: 100vh;
         }
 
-        /* Sidebar Styling */
         .sidebar {
             width: 320px;
-            background: #16213e;
+            background: #1e1e1e;
             padding: 20px;
             display: flex;
             flex-direction: column;
@@ -36,9 +35,9 @@
         }
 
         .sidebar h2 {
-            color: #e94560;
+            color: #ff4757;
             font-size: 1.5rem;
-            border-bottom: 2px solid #0f3460;
+            border-bottom: 2px solid #2f3542;
             padding-bottom: 10px;
         }
 
@@ -50,7 +49,7 @@
 
         .control-group h3 {
             font-size: 1rem;
-            color: #4ecca3;
+            color: #2ed573;
         }
 
         .character-selector {
@@ -62,19 +61,20 @@
             flex: 1;
             padding: 10px;
             border: none;
-            background: #0f3460;
+            background: #2f3542;
             color: white;
             border-radius: 5px;
             cursor: pointer;
             transition: 0.3s;
+            font-weight: bold;
         }
 
         .character-selector button.active, .character-selector button:hover {
-            background: #e94560;
+            background: #ff4757;
         }
 
         input[type="file"] {
-            background: #0f3460;
+            background: #2f3542;
             padding: 8px;
             border-radius: 5px;
             color: white;
@@ -82,7 +82,7 @@
         }
 
         small {
-            color: #888;
+            color: #a4b0be;
             font-size: 0.75rem;
         }
 
@@ -112,9 +112,9 @@
             transition: 0.3s;
         }
 
-        .btn-record { background: #e94560; color: white; }
-        .btn-record.recording { background: #ff414d; animation: pulse 1s infinite; }
-        .btn-play { background: #4ecca3; color: #1a1a2e; }
+        .btn-record { background: #ff4757; color: white; }
+        .btn-record.recording { background: #ff6b81; animation: pulse 1s infinite; }
+        .btn-play { background: #2ed573; color: #1e1e1e; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         @keyframes pulse {
@@ -123,20 +123,19 @@
             100% { transform: scale(1); }
         }
 
-        /* Stage Styling */
         .stage-container {
             flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #0f3460, #16213e);
+            background: #f1f2f6;
             position: relative;
             overflow: hidden;
         }
 
         .stage {
-            width: 450px;
-            height: 550px;
+            width: 500px;
+            height: 600px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -147,11 +146,11 @@
             height: 100%;
         }
 
-        /* Fixed SVG Animation Origins */
+        /* Pivot points & Animations */
         #mouth {
             transform-origin: center center;
             transform-box: fill-box;
-            transition: transform 0.05s ease-out;
+            transition: transform 0.04s ease-out;
         }
 
         #left-arm {
@@ -169,7 +168,7 @@
         #body {
             transform-origin: bottom center;
             transform-box: fill-box;
-            transition: transform 0.1s ease-out;
+            transition: transform 0.08s ease-out;
         }
     </style>
 </head>
@@ -177,28 +176,27 @@
 
     <div class="app-container">
         <aside class="sidebar">
-            <h2>🎨 Controls</h2>
+            <h2>🎨 2D Studio Controls</h2>
 
             <div class="control-group">
-                <h3>1. Select Full-Body Character</h3>
+                <h3>1. Select Character</h3>
                 <div class="character-selector">
-                    <button onclick="selectCharacter('boy', event)" class="active">Boy</button>
-                    <button onclick="selectCharacter('robot', event)">Robot</button>
-                    <button onclick="selectCharacter('monster', event)">Monster</button>
+                    <button onclick="selectCharacter('redhair', event)" class="active">Red Hair</button>
+                    <button onclick="selectCharacter('brownish', event)">Brown Hair</button>
                 </div>
             </div>
 
             <div class="control-group">
                 <h3>2. Upload Custom SVG</h3>
                 <input type="file" id="svgUpload" accept=".svg">
-                <small>SVG must contain IDs: <code>mouth</code>, <code>left-arm</code>, <code>right-arm</code></small>
+                <small>Requires SVG elements with IDs: <code>mouth</code>, <code>left-arm</code>, <code>right-arm</code></small>
             </div>
 
             <div class="control-group">
                 <h3>3. Voice & Recording</h3>
                 <div class="voice-effects">
-                    <label for="pitch">Voice Pitch (Cartoon Effect):</label>
-                    <input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.4">
+                    <label for="pitch">Cartoon Pitch Effect:</label>
+                    <input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.3">
                 </div>
                 
                 <div class="action-buttons">
@@ -214,113 +212,115 @@
     </div>
 
     <script>
-        // Full Body Vector SVGs
+        // High Quality 2D Hand-drawn Style SVGs with Outlines
         const characters = {
-            boy: `
-                <svg viewBox="0 0 300 400">
-                    <g id="body">
-                        <!-- Legs -->
-                        <rect x="115" y="270" width="25" height="90" rx="10" fill="#2c3e50" />
-                        <rect x="160" y="270" width="25" height="90" rx="10" fill="#2c3e50" />
-                        <!-- Shoes -->
-                        <rect x="105" y="350" width="35" height="20" rx="8" fill="#e74c3c" />
-                        <rect x="160" y="350" width="35" height="20" rx="8" fill="#e74c3c" />
+            redhair: `
+                <svg viewBox="0 0 350 450" xmlns="http://www.w3.org/2000/svg">
+                    <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
                         
-                        <!-- Torso/Shirt -->
-                        <path d="M 100 170 L 200 170 L 195 280 L 105 280 Z" fill="#e94560" rx="10" />
+                        <!-- Legs -->
+                        <path d="M 140 330 L 135 410" fill="none"/>
+                        <path d="M 210 330 L 215 410" fill="none"/>
+                        
+                        <!-- Feet -->
+                        <ellipse cx="125" cy="415" rx="18" ry="8" fill="#333" />
+                        <ellipse cx="225" cy="415" rx="18" ry="8" fill="#333" />
 
-                        <!-- Left Arm -->
+                        <!-- T-Shirt & Torso -->
+                        <path d="M 110 210 L 240 210 L 230 330 L 120 330 Z" fill="#ffffff" />
+                        <rect x="117" y="270" width="115" height="35" fill="#a03c51" stroke="#000" stroke-width="3" />
+
+                        <!-- Left Arm (Hand gesturing) -->
                         <g id="left-arm">
-                            <rect x="65" y="170" width="25" height="90" rx="12" fill="#e94560" />
-                            <circle cx="77" cy="270" r="14" fill="#f1c27d" />
+                            <path d="M 110 215 L 60 270 L 20 250" fill="none" stroke-width="20" stroke="#ffffff" />
+                            <path d="M 110 215 L 60 270 L 20 250" fill="none" stroke-width="4" stroke="#000000" />
+                            <!-- Open Hand -->
+                            <path d="M 25 250 C 10 240, 5 260, 15 270 C 5 275, 10 285, 25 275" fill="#fcd7b6" stroke="#000" stroke-width="3"/>
                         </g>
 
                         <!-- Right Arm -->
                         <g id="right-arm">
-                            <rect x="210" y="170" width="25" height="90" rx="12" fill="#e94560" />
-                            <circle cx="222" cy="270" r="14" fill="#f1c27d" />
+                            <path d="M 240 215 L 285 270" fill="none" stroke-width="20" stroke="#ffffff" />
+                            <path d="M 240 215 L 285 270" fill="none" stroke-width="4" stroke="#000000" />
+                            <circle cx="290" cy="275" r="12" fill="#fcd7b6" stroke="#000" stroke-width="3"/>
                         </g>
 
-                        <!-- Head Group -->
+                        <!-- Neck -->
+                        <rect x="155" y="185" width="40" height="30" fill="#fcd7b6" stroke="#000" stroke-width="4" />
+
+                        <!-- Head -->
                         <g id="head">
-                            <circle cx="150" cy="110" r="55" fill="#f1c27d" />
+                            <path d="M 100 130 C 95 200, 255 200, 250 130 C 255 70, 95 70, 100 130 Z" fill="#fcd7b6" />
+
                             <!-- Eyes -->
-                            <circle cx="130" cy="100" r="8" fill="#333" />
-                            <circle cx="170" cy="100" r="8" fill="#333" />
-                            <!-- Hair -->
-                            <path d="M 95 100 Q 150 30 205 100" fill="#4a2e1d" />
-                            <!-- Mouth -->
-                            <ellipse id="mouth" cx="150" cy="135" rx="18" ry="3" fill="#900000" />
+                            <g id="eyes">
+                                <!-- Left Eye -->
+                                <ellipse cx="135" cy="120" rx="22" ry="16" fill="#fff" />
+                                <circle cx="140" cy="120" r="7" fill="#000" />
+                                <path d="M 110 100 Q 135 90 160 105" fill="none" stroke="#000" stroke-width="4" />
+
+                                <!-- Right Eye -->
+                                <ellipse cx="215" cy="120" rx="22" ry="16" fill="#fff" />
+                                <circle cx="210" cy="120" r="7" fill="#000" />
+                                <path d="M 190 105 Q 215 90 240 100" fill="none" stroke="#000" stroke-width="4" />
+                            </g>
+
+                            <!-- Curly Red Hair -->
+                            <path d="M 90 120 C 70 80, 90 30, 140 30 C 160 10, 200 10, 220 30 C 260 20, 280 70, 260 120 C 240 100, 240 70, 210 60 C 180 50, 130 60, 90 120 Z" fill="#801818" />
+
+                            <!-- Expressive Mouth (Lip-sync dynamic) -->
+                            <g id="mouth-wrapper">
+                                <ellipse id="mouth" cx="175" cy="165" rx="16" ry="4" fill="#801818" />
+                            </g>
                         </g>
+
                     </g>
                 </svg>`,
-            robot: `
-                <svg viewBox="0 0 300 400">
-                    <g id="body">
-                        <!-- Legs -->
-                        <rect x="110" y="270" width="30" height="90" rx="5" fill="#7f8c8d" />
-                        <rect x="160" y="270" width="30" height="90" rx="5" fill="#7f8c8d" />
+            brownish: `
+                <svg viewBox="0 0 350 450" xmlns="http://www.w3.org/2000/svg">
+                    <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
                         
-                        <!-- Torso -->
-                        <rect x="90" y="150" width="120" height="120" rx="15" fill="#95a5a6" />
-                        <circle cx="150" cy="210" r="25" fill="#00d2d3" />
+                        <!-- Legs -->
+                        <path d="M 145 340 L 140 410" fill="none"/>
+                        <path d="M 205 340 L 210 410" fill="none"/>
+                        
+                        <!-- Torso / Underwear/Shorts style character -->
+                        <path d="M 115 220 L 235 220 L 225 330 L 125 330 Z" fill="#fcd7b6" />
+                        <path d="M 125 300 L 225 300 L 210 340 L 140 340 Z" fill="#ffffff" />
 
                         <!-- Left Arm -->
                         <g id="left-arm">
-                            <rect x="50" y="150" width="25" height="100" rx="10" fill="#7f8c8d" />
-                            <circle cx="62" cy="260" r="12" fill="#e74c3c" />
+                            <path d="M 115 225 L 75 280" fill="none" stroke-width="16" stroke="#fcd7b6" />
+                            <path d="M 115 225 L 75 280" fill="none" stroke-width="4" stroke="#000000" />
+                            <circle cx="70" cy="285" r="10" fill="#fcd7b6" />
                         </g>
 
                         <!-- Right Arm -->
                         <g id="right-arm">
-                            <rect x="225" y="150" width="25" height="100" rx="10" fill="#7f8c8d" />
-                            <circle cx="237" cy="260" r="12" fill="#e74c3c" />
+                            <path d="M 235 225 L 275 280" fill="none" stroke-width="16" stroke="#fcd7b6" />
+                            <path d="M 235 225 L 275 280" fill="none" stroke-width="4" stroke="#000000" />
+                            <circle cx="280" cy="285" r="10" fill="#fcd7b6" />
                         </g>
 
                         <!-- Head -->
                         <g id="head">
-                            <rect x="100" y="40" width="100" height="90" rx="15" fill="#bdc3c7" />
+                            <path d="M 105 130 C 100 200, 250 200, 245 130 C 250 70, 100 70, 105 130 Z" fill="#fcd7b6" />
+
                             <!-- Eyes -->
-                            <rect x="115" y="65" width="25" height="15" fill="#e74c3c" />
-                            <rect x="160" y="65" width="25" height="15" fill="#e74c3c" />
-                            <!-- Antenna -->
-                            <line x1="150" y1="40" x2="150" y2="15" stroke="#7f8c8d" stroke-width="6"/>
-                            <circle cx="150" cy="12" r="8" fill="#f1c40f" />
+                            <ellipse cx="140" cy="125" rx="24" ry="18" fill="#fff" />
+                            <ellipse cx="140" cy="125" rx="24" ry="7" fill="#ff7675" opacity="0.5"/>
+                            <circle cx="145" cy="125" r="8" fill="#000" />
+
+                            <ellipse cx="210" cy="125" rx="24" ry="18" fill="#fff" />
+                            <ellipse cx="210" cy="125" rx="24" ry="7" fill="#ff7675" opacity="0.5"/>
+                            <circle cx="205" cy="125" r="8" fill="#000" />
+
+                            <!-- Spiky Brown Hair -->
+                            <path d="M 95 110 L 110 70 L 135 80 L 160 50 L 190 70 L 220 40 L 240 80 L 255 110 Z" fill="#8d5822" />
+
                             <!-- Mouth -->
-                            <rect id="mouth" x="120" y="105" width="60" height="5" fill="#2c3e50" rx="2" />
+                            <ellipse id="mouth" cx="175" cy="170" rx="14" ry="3" fill="#631717" />
                         </g>
-                    </g>
-                </svg>`,
-            monster: `
-                <svg viewBox="0 0 300 400">
-                    <g id="body">
-                        <!-- Monster Body -->
-                        <path d="M 60 360 C 40 100, 260 100, 240 360 Z" fill="#a55eea" />
-                        
-                        <!-- Feet -->
-                        <ellipse cx="100" cy="360" rx="30" ry="15" fill="#8e44ad" />
-                        <ellipse cx="200" cy="360" rx="30" ry="15" fill="#8e44ad" />
-
-                        <!-- Left Arm -->
-                        <g id="left-arm">
-                            <path d="M 75 210 Q 30 230 40 280" stroke="#a55eea" stroke-width="25" stroke-linecap="round" fill="none" />
-                        </g>
-
-                        <!-- Right Arm -->
-                        <g id="right-arm">
-                            <path d="M 225 210 Q 270 230 260 280" stroke="#a55eea" stroke-width="25" stroke-linecap="round" fill="none" />
-                        </g>
-
-                        <!-- Eyes -->
-                        <circle cx="150" cy="140" r="30" fill="#fff" />
-                        <circle cx="150" cy="140" r="12" fill="#000" />
-                        
-                        <!-- Horns -->
-                        <polygon points="90,110 70,60 110,90" fill="#f7b731" />
-                        <polygon points="210,110 230,60 190,90" fill="#f7b731" />
-
-                        <!-- Mouth -->
-                        <ellipse id="mouth" cx="150" cy="220" rx="35" ry="6" fill="#2d98da" />
                     </g>
                 </svg>`
         };
@@ -339,7 +339,7 @@
         const pitchInput = document.getElementById('pitch');
         const svgUpload = document.getElementById('svgUpload');
 
-        stage.innerHTML = characters.boy;
+        stage.innerHTML = characters.redhair;
 
         function selectCharacter(type, event) {
             document.querySelectorAll('.character-selector button').forEach(btn => btn.classList.remove('active'));
@@ -414,7 +414,7 @@
 
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
-            analyser.smoothingTimeConstant = 0.6;
+            analyser.smoothingTimeConstant = 0.5;
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
 
@@ -437,23 +437,23 @@
                 }
                 let average = sum / bufferLength;
 
-                // 1. Lip Sync (Mouth vertical stretch)
+                // 1. Accurate Lip Sync
                 if (mouth) {
-                    let scaleY = 1 + (average / 30);
-                    if (scaleY > 3.5) scaleY = 3.5;
+                    let scaleY = 1 + (average / 20);
+                    if (scaleY > 4.5) scaleY = 4.5;
                     mouth.style.transform = `scaleY(${scaleY})`;
                 }
 
-                // 2. Arms Movement (Rotate depending on audio volume)
+                // 2. Hand Expression Movement
                 if (leftArm && rightArm) {
-                    let armRotation = (average / 5); // Arm angle
+                    let armRotation = (average / 4);
                     leftArm.style.transform = `rotate(${armRotation}deg)`;
                     rightArm.style.transform = `rotate(-${armRotation}deg)`;
                 }
 
-                // 3. Body Subtle Bounce (Breathing/Talking rhythm)
+                // 3. Body Head-bop / Talk Bounce
                 if (body) {
-                    let bodyScale = 1 + (average / 500);
+                    let bodyScale = 1 + (average / 400);
                     body.style.transform = `scale(${bodyScale})`;
                 }
 
@@ -465,7 +465,6 @@
             source.onended = () => {
                 if (animationFrameId) cancelAnimationFrame(animationFrameId);
                 
-                // Reset Pose
                 const mouth = document.getElementById('mouth');
                 const leftArm = document.getElementById('left-arm');
                 const rightArm = document.getElementById('right-arm');
