@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartoon Voice & Lip-Sync Studio</title>
+    <title>Full Body Cartoon Voice Studio</title>
     
     <style>
         * {
@@ -135,8 +135,8 @@
         }
 
         .stage {
-            width: 400px;
-            height: 400px;
+            width: 450px;
+            height: 550px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -147,11 +147,29 @@
             height: 100%;
         }
 
-        /* Fixed Transform Origin for Lip Sync */
+        /* Fixed SVG Animation Origins */
         #mouth {
             transform-origin: center center;
             transform-box: fill-box;
             transition: transform 0.05s ease-out;
+        }
+
+        #left-arm {
+            transform-origin: top right;
+            transform-box: fill-box;
+            transition: transform 0.1s ease-out;
+        }
+
+        #right-arm {
+            transform-origin: top left;
+            transform-box: fill-box;
+            transition: transform 0.1s ease-out;
+        }
+
+        #body {
+            transform-origin: bottom center;
+            transform-box: fill-box;
+            transition: transform 0.1s ease-out;
         }
     </style>
 </head>
@@ -162,7 +180,7 @@
             <h2>🎨 Controls</h2>
 
             <div class="control-group">
-                <h3>1. Select Character</h3>
+                <h3>1. Select Full-Body Character</h3>
                 <div class="character-selector">
                     <button onclick="selectCharacter('boy', event)" class="active">Boy</button>
                     <button onclick="selectCharacter('robot', event)">Robot</button>
@@ -173,14 +191,14 @@
             <div class="control-group">
                 <h3>2. Upload Custom SVG</h3>
                 <input type="file" id="svgUpload" accept=".svg">
-                <small>Ensure custom SVG has <code>id="mouth"</code> element!</small>
+                <small>SVG must contain IDs: <code>mouth</code>, <code>left-arm</code>, <code>right-arm</code></small>
             </div>
 
             <div class="control-group">
                 <h3>3. Voice & Recording</h3>
                 <div class="voice-effects">
                     <label for="pitch">Voice Pitch (Cartoon Effect):</label>
-                    <input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.5">
+                    <input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.4">
                 </div>
                 
                 <div class="action-buttons">
@@ -196,32 +214,114 @@
     </div>
 
     <script>
+        // Full Body Vector SVGs
         const characters = {
             boy: `
-                <svg viewBox="0 0 200 200">
-                    <circle cx="100" cy="100" r="80" fill="#f1c27d" />
-                    <circle cx="70" cy="80" r="10" fill="#333" />
-                    <circle cx="130" cy="80" r="10" fill="#333" />
-                    <path d="M 30 80 Q 100 10 170 80" fill="#4a2e1d" />
-                    <ellipse id="mouth" cx="100" cy="130" rx="20" ry="4" fill="#a00000" />
+                <svg viewBox="0 0 300 400">
+                    <g id="body">
+                        <!-- Legs -->
+                        <rect x="115" y="270" width="25" height="90" rx="10" fill="#2c3e50" />
+                        <rect x="160" y="270" width="25" height="90" rx="10" fill="#2c3e50" />
+                        <!-- Shoes -->
+                        <rect x="105" y="350" width="35" height="20" rx="8" fill="#e74c3c" />
+                        <rect x="160" y="350" width="35" height="20" rx="8" fill="#e74c3c" />
+                        
+                        <!-- Torso/Shirt -->
+                        <path d="M 100 170 L 200 170 L 195 280 L 105 280 Z" fill="#e94560" rx="10" />
+
+                        <!-- Left Arm -->
+                        <g id="left-arm">
+                            <rect x="65" y="170" width="25" height="90" rx="12" fill="#e94560" />
+                            <circle cx="77" cy="270" r="14" fill="#f1c27d" />
+                        </g>
+
+                        <!-- Right Arm -->
+                        <g id="right-arm">
+                            <rect x="210" y="170" width="25" height="90" rx="12" fill="#e94560" />
+                            <circle cx="222" cy="270" r="14" fill="#f1c27d" />
+                        </g>
+
+                        <!-- Head Group -->
+                        <g id="head">
+                            <circle cx="150" cy="110" r="55" fill="#f1c27d" />
+                            <!-- Eyes -->
+                            <circle cx="130" cy="100" r="8" fill="#333" />
+                            <circle cx="170" cy="100" r="8" fill="#333" />
+                            <!-- Hair -->
+                            <path d="M 95 100 Q 150 30 205 100" fill="#4a2e1d" />
+                            <!-- Mouth -->
+                            <ellipse id="mouth" cx="150" cy="135" rx="18" ry="3" fill="#900000" />
+                        </g>
+                    </g>
                 </svg>`,
             robot: `
-                <svg viewBox="0 0 200 200">
-                    <rect x="30" y="30" width="140" height="140" rx="20" fill="#95a5a6" />
-                    <rect x="50" y="60" width="30" height="20" fill="#00d2d3" />
-                    <rect x="120" y="60" width="30" height="20" fill="#00d2d3" />
-                    <line x1="100" y1="30" x2="100" y2="10" stroke="#7f8c8d" stroke-width="6"/>
-                    <circle cx="100" cy="10" r="8" fill="#e74c3c" />
-                    <rect id="mouth" x="70" y="125" width="60" height="6" fill="#2c3e50" rx="2" />
+                <svg viewBox="0 0 300 400">
+                    <g id="body">
+                        <!-- Legs -->
+                        <rect x="110" y="270" width="30" height="90" rx="5" fill="#7f8c8d" />
+                        <rect x="160" y="270" width="30" height="90" rx="5" fill="#7f8c8d" />
+                        
+                        <!-- Torso -->
+                        <rect x="90" y="150" width="120" height="120" rx="15" fill="#95a5a6" />
+                        <circle cx="150" cy="210" r="25" fill="#00d2d3" />
+
+                        <!-- Left Arm -->
+                        <g id="left-arm">
+                            <rect x="50" y="150" width="25" height="100" rx="10" fill="#7f8c8d" />
+                            <circle cx="62" cy="260" r="12" fill="#e74c3c" />
+                        </g>
+
+                        <!-- Right Arm -->
+                        <g id="right-arm">
+                            <rect x="225" y="150" width="25" height="100" rx="10" fill="#7f8c8d" />
+                            <circle cx="237" cy="260" r="12" fill="#e74c3c" />
+                        </g>
+
+                        <!-- Head -->
+                        <g id="head">
+                            <rect x="100" y="40" width="100" height="90" rx="15" fill="#bdc3c7" />
+                            <!-- Eyes -->
+                            <rect x="115" y="65" width="25" height="15" fill="#e74c3c" />
+                            <rect x="160" y="65" width="25" height="15" fill="#e74c3c" />
+                            <!-- Antenna -->
+                            <line x1="150" y1="40" x2="150" y2="15" stroke="#7f8c8d" stroke-width="6"/>
+                            <circle cx="150" cy="12" r="8" fill="#f1c40f" />
+                            <!-- Mouth -->
+                            <rect id="mouth" x="120" y="105" width="60" height="5" fill="#2c3e50" rx="2" />
+                        </g>
+                    </g>
                 </svg>`,
             monster: `
-                <svg viewBox="0 0 200 200">
-                    <path d="M 30 160 C 20 40, 180 40, 170 160 Z" fill="#a55eea" />
-                    <circle cx="100" cy="80" r="25" fill="#fff" />
-                    <circle cx="100" cy="80" r="10" fill="#000" />
-                    <polygon points="50,50 40,20 65,40" fill="#f7b731" />
-                    <polygon points="150,50 160,20 135,40" fill="#f7b731" />
-                    <ellipse id="mouth" cx="100" cy="130" rx="25" ry="5" fill="#2d98da" />
+                <svg viewBox="0 0 300 400">
+                    <g id="body">
+                        <!-- Monster Body -->
+                        <path d="M 60 360 C 40 100, 260 100, 240 360 Z" fill="#a55eea" />
+                        
+                        <!-- Feet -->
+                        <ellipse cx="100" cy="360" rx="30" ry="15" fill="#8e44ad" />
+                        <ellipse cx="200" cy="360" rx="30" ry="15" fill="#8e44ad" />
+
+                        <!-- Left Arm -->
+                        <g id="left-arm">
+                            <path d="M 75 210 Q 30 230 40 280" stroke="#a55eea" stroke-width="25" stroke-linecap="round" fill="none" />
+                        </g>
+
+                        <!-- Right Arm -->
+                        <g id="right-arm">
+                            <path d="M 225 210 Q 270 230 260 280" stroke="#a55eea" stroke-width="25" stroke-linecap="round" fill="none" />
+                        </g>
+
+                        <!-- Eyes -->
+                        <circle cx="150" cy="140" r="30" fill="#fff" />
+                        <circle cx="150" cy="140" r="12" fill="#000" />
+                        
+                        <!-- Horns -->
+                        <polygon points="90,110 70,60 110,90" fill="#f7b731" />
+                        <polygon points="210,110 230,60 190,90" fill="#f7b731" />
+
+                        <!-- Mouth -->
+                        <ellipse id="mouth" cx="150" cy="220" rx="35" ry="6" fill="#2d98da" />
+                    </g>
                 </svg>`
         };
 
@@ -314,7 +414,7 @@
 
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
-            analyser.smoothingTimeConstant = 0.5; // Smooth mouth movement
+            analyser.smoothingTimeConstant = 0.6;
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
 
@@ -323,10 +423,11 @@
 
             source.start(0);
 
-            function animateMouth() {
+            function animateCharacter() {
                 const mouth = document.getElementById('mouth');
-                
-                if (!mouth) return;
+                const leftArm = document.getElementById('left-arm');
+                const rightArm = document.getElementById('right-arm');
+                const body = document.getElementById('body');
 
                 analyser.getByteFrequencyData(dataArray);
                 
@@ -336,21 +437,45 @@
                 }
                 let average = sum / bufferLength;
 
-                // Controlled scaling so mouth stays in position
-                let scaleY = 1 + (average / 35); 
-                if (scaleY > 3.5) scaleY = 3.5; // Cap max open limit
+                // 1. Lip Sync (Mouth vertical stretch)
+                if (mouth) {
+                    let scaleY = 1 + (average / 30);
+                    if (scaleY > 3.5) scaleY = 3.5;
+                    mouth.style.transform = `scaleY(${scaleY})`;
+                }
 
-                mouth.style.transform = `scaleY(${scaleY})`;
+                // 2. Arms Movement (Rotate depending on audio volume)
+                if (leftArm && rightArm) {
+                    let armRotation = (average / 5); // Arm angle
+                    leftArm.style.transform = `rotate(${armRotation}deg)`;
+                    rightArm.style.transform = `rotate(-${armRotation}deg)`;
+                }
 
-                animationFrameId = requestAnimationFrame(animateMouth);
+                // 3. Body Subtle Bounce (Breathing/Talking rhythm)
+                if (body) {
+                    let bodyScale = 1 + (average / 500);
+                    body.style.transform = `scale(${bodyScale})`;
+                }
+
+                animationFrameId = requestAnimationFrame(animateCharacter);
             }
 
-            animateMouth();
+            animateCharacter();
 
             source.onended = () => {
                 if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                
+                // Reset Pose
                 const mouth = document.getElementById('mouth');
+                const leftArm = document.getElementById('left-arm');
+                const rightArm = document.getElementById('right-arm');
+                const body = document.getElementById('body');
+
                 if (mouth) mouth.style.transform = 'scaleY(1)';
+                if (leftArm) leftArm.style.transform = 'rotate(0deg)';
+                if (rightArm) rightArm.style.transform = 'rotate(0deg)';
+                if (body) body.style.transform = 'scale(1)';
+                
                 activeSource = null;
             };
         });
