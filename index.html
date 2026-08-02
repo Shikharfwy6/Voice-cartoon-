@@ -44,7 +44,7 @@
             gap: 8px;
         }
 
-        /* Workspace Canvas Area */
+        /* Workspace Canvas Area with 3D Perspective */
         .workspace {
             flex: 1;
             display: flex;
@@ -54,6 +54,7 @@
             position: relative;
             overflow: hidden;
             padding: 10px;
+            perspective: 800px; /* Alight Motion 3D Camera Perspective */
         }
 
         .viewport {
@@ -65,6 +66,7 @@
             border-radius: 6px;
             overflow: hidden;
             touch-action: none;
+            transform-style: preserve-3d;
         }
 
         /* Aspect Ratios */
@@ -72,7 +74,7 @@
         .ratio-9-16 { height: 100%; max-height: 480px; aspect-ratio: 9/16; }
         .ratio-1-1  { width: 100%; max-width: 380px; aspect-ratio: 1/1; }
 
-        /* Draggable Elements */
+        /* Draggable 3D Elements */
         .draggable-element {
             position: absolute;
             top: 0;
@@ -80,6 +82,8 @@
             cursor: move;
             touch-action: none;
             display: inline-block;
+            transform-style: preserve-3d;
+            will-change: transform;
         }
 
         .draggable-element.selected {
@@ -106,7 +110,7 @@
 
         /* Bottom Controls Drawer */
         .bottom-panel {
-            height: 270px;
+            height: 280px;
             background: #181920;
             border-top: 1px solid #282a36;
             display: flex;
@@ -152,7 +156,7 @@
 
         /* UI Slider Groups & Controls */
         .control-group {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .slider-label {
@@ -160,7 +164,7 @@
             justify-content: space-between;
             font-size: 0.75rem;
             color: #a4b0be;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         input[type=range] {
@@ -265,12 +269,12 @@
 <body>
 
     <header class="app-header">
-        <div class="app-title">🎬 2D Animation Studio</div>
+        <div class="app-title">🎬 2D Alight Animation Studio</div>
     </header>
 
     <main class="workspace">
         <div id="viewport" class="viewport ratio-16-9">
-            <div id="characterWrapper" class="draggable-element character-wrapper selected" style="transform: translate(100px, 40px) scale(1);">
+            <div id="characterWrapper" class="draggable-element character-wrapper selected" style="transform: translate3d(100px, 40px, 0px) scale(1);">
                 <svg viewBox="-50 -20 450 500" xmlns="http://www.w3.org/2000/svg">
                     <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
                         <g id="left-leg">
@@ -315,15 +319,38 @@
 
     <footer class="bottom-panel">
         <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('voice', event)">🎙️ Advanced Voice FX</button>
-            <button class="tab-btn" onclick="switchTab('transform', event)">📐 Position & Scale (X,Y,Z)</button>
+            <button class="tab-btn active" onclick="switchTab('transform', event)">📐 3D Space (X, Y, Z)</button>
+            <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Effects</button>
             <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Assets & BG</button>
             <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Aspect Ratio</button>
             <button class="tab-btn" onclick="switchTab('layers', event)">📚 Layers Stack</button>
         </div>
 
-        <!-- Tab 1: Voice FX -->
-        <div id="tab-voice" class="tab-content active">
+        <!-- Tab 1: Transform 3D (X, Y, Z Axis + Scale) -->
+        <div id="tab-transform" class="tab-content active">
+            <div class="control-group">
+                <div class="slider-label"><span>X Axis (Horizontal)</span><span id="xVal">100px</span></div>
+                <input type="range" id="posXSlider" min="-300" max="600" value="100">
+            </div>
+
+            <div class="control-group">
+                <div class="slider-label"><span>Y Axis (Vertical)</span><span id="yVal">40px</span></div>
+                <input type="range" id="posYSlider" min="-300" max="400" value="40">
+            </div>
+
+            <div class="control-group">
+                <div class="slider-label"><span>Z Axis (3D Depth: Forward / Backward)</span><span id="zVal">0px</span></div>
+                <input type="range" id="posZSlider" min="-400" max="400" value="0">
+            </div>
+
+            <div class="control-group">
+                <div class="slider-label"><span>Scale (Overall Size)</span><span id="sVal">1.0x</span></div>
+                <input type="range" id="scaleSlider" min="0.2" max="2.5" step="0.1" value="1.0">
+            </div>
+        </div>
+
+        <!-- Tab 2: Voice FX -->
+        <div id="tab-voice" class="tab-content">
             <div class="control-group">
                 <div class="slider-label"><span>Pitch Control</span><span id="pitchVal">1.0x</span></div>
                 <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
@@ -349,25 +376,6 @@
                 <button id="recordBtn" class="btn-record">🎤 Record Voice</button>
                 <button id="playBtn" class="btn-play" disabled>▶️ Sync & Play Voice</button>
             </div>
-        </div>
-
-        <!-- Tab 2: Transform (X, Y, Z Axis) -->
-        <div id="tab-transform" class="tab-content">
-            <div class="control-group">
-                <div class="slider-label"><span>X Axis (Left / Right)</span><span id="xVal">100px</span></div>
-                <input type="range" id="posXSlider" min="-200" max="600" value="100">
-            </div>
-
-            <div class="control-group">
-                <div class="slider-label"><span>Y Axis (Up / Down)</span><span id="yVal">40px</span></div>
-                <input type="range" id="posYSlider" min="-200" max="400" value="40">
-            </div>
-
-            <div class="control-group">
-                <div class="slider-label"><span>Z Axis (Scale / Zoom)</span><span id="zVal">1.0x</span></div>
-                <input type="range" id="scaleSlider" min="0.2" max="2.5" step="0.1" value="1.0">
-            </div>
-            <p style="font-size:0.75rem; color:#a4b0be;">💡 Tip: Aap screen par touch karke direct finger se bhi position adjust kar sakte hain.</p>
         </div>
 
         <!-- Tab 3: Assets & BG -->
@@ -413,6 +421,7 @@
         const viewport = document.getElementById('viewport');
         const posXSlider = document.getElementById('posXSlider');
         const posYSlider = document.getElementById('posYSlider');
+        const posZSlider = document.getElementById('posZSlider');
         const scaleSlider = document.getElementById('scaleSlider');
 
         const pitchSlider = document.getElementById('pitchSlider');
@@ -428,12 +437,12 @@
             document.getElementById(`tab-${tabId}`).classList.add('active');
         }
 
-        // Voice Controls Real-time Displays
+        // Voice Controls Displays
         pitchSlider.oninput = (e) => document.getElementById('pitchVal').innerText = `${e.target.value}x`;
         speedSlider.oninput = (e) => document.getElementById('speedVal').innerText = `${e.target.value}x`;
         volSlider.oninput = (e) => document.getElementById('volVal').innerText = `${Math.round(e.target.value * 100)}%`;
 
-        // Aspect Ratio
+        // Aspect Ratio Switcher
         function setRatio(ratio, e) {
             document.querySelectorAll('#tab-ratio .btn-opt').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
@@ -460,7 +469,7 @@
                 reader.onload = (evt) => {
                     const assetDiv = document.createElement('div');
                     assetDiv.className = 'draggable-element asset-wrapper';
-                    assetDiv.style.transform = `translate(50px, 50px) scale(1)`;
+                    assetDiv.style.transform = `translate3d(50px, 50px, 0px) scale(1)`;
                     assetDiv.innerHTML = `<img src="${evt.target.result}">`;
                     
                     viewport.appendChild(assetDiv);
@@ -477,47 +486,52 @@
             }
         });
 
-        // Helper: Extract Translate/Scale
+        // Parse 3D Transform String
         function getTransformValues(el) {
             const transform = el.style.transform;
-            const matchTranslate = transform.match(/translate\(([^px]+)px,\s*([^px]+)px\)/);
+            const match3D = transform.match(/translate3d\(([^px]+)px,\s*([^px]+)px,\s*([^px]+)px\)/);
             const matchScale = transform.match(/scale\(([^)]+)\)/);
             
-            let x = matchTranslate ? parseFloat(matchTranslate[1]) : 0;
-            let y = matchTranslate ? parseFloat(matchTranslate[2]) : 0;
+            let x = match3D ? parseFloat(match3D[1]) : 0;
+            let y = match3D ? parseFloat(match3D[2]) : 0;
+            let z = match3D ? parseFloat(match3D[3]) : 0;
             let s = matchScale ? parseFloat(matchScale[1]) : 1;
-            return { x, y, s };
+            return { x, y, z, s };
         }
 
-        // Sync Transform Sliders with Selected Element
-        function updateTransformSliders(x, y, s) {
+        // Sync 3D Transform Sliders with Selected Element
+        function updateTransformSliders(x, y, z, s) {
             posXSlider.value = Math.round(x);
             posYSlider.value = Math.round(y);
+            posZSlider.value = Math.round(z);
             scaleSlider.value = s;
 
             document.getElementById('xVal').innerText = `${Math.round(x)}px`;
             document.getElementById('yVal').innerText = `${Math.round(y)}px`;
-            document.getElementById('zVal').innerText = `${parseFloat(s).toFixed(1)}x`;
+            document.getElementById('zVal').innerText = `${Math.round(z)}px`;
+            document.getElementById('sVal').innerText = `${parseFloat(s).toFixed(1)}x`;
         }
 
         function applyTransformFromSliders() {
             if(!selectedElement) return;
             const x = posXSlider.value;
             const y = posYSlider.value;
+            const z = posZSlider.value;
             const s = scaleSlider.value;
 
-            selectedElement.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
-            updateTransformSliders(x, y, s);
+            selectedElement.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${s})`;
+            updateTransformSliders(x, y, z, s);
         }
 
         posXSlider.oninput = applyTransformFromSliders;
         posYSlider.oninput = applyTransformFromSliders;
+        posZSlider.oninput = applyTransformFromSliders;
         scaleSlider.oninput = applyTransformFromSliders;
 
-        // Touch & Drag System
+        // Touch & Drag 3D System
         function makeDraggable(element) {
             let isDragging = false;
-            let startX, startY, currentX = 100, currentY = 40, currentScale = 1;
+            let startX, startY, currentX = 100, currentY = 40, currentZ = 0, currentScale = 1;
 
             function onPointerDown(e) {
                 isDragging = true;
@@ -526,6 +540,7 @@
                 const coords = getTransformValues(element);
                 currentX = coords.x;
                 currentY = coords.y;
+                currentZ = coords.z;
                 currentScale = coords.s;
 
                 startX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
@@ -543,8 +558,8 @@
                 currentX = clientX - startX;
                 currentY = clientY - startY;
 
-                element.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentScale})`;
-                updateTransformSliders(currentX, currentY, currentScale);
+                element.style.transform = `translate3d(${currentX}px, ${currentY}px, ${currentZ}px) scale(${currentScale})`;
+                updateTransformSliders(currentX, currentY, currentZ, currentScale);
             }
 
             function onPointerUp() {
@@ -562,7 +577,7 @@
             selectedElement.classList.add('selected');
 
             const coords = getTransformValues(selectedElement);
-            updateTransformSliders(coords.x, coords.y, coords.s);
+            updateTransformSliders(coords.x, coords.y, coords.z, coords.s);
         }
 
         makeDraggable(document.getElementById('characterWrapper'));
@@ -611,14 +626,11 @@
             activeSource = source;
             source.buffer = audioBuffer;
 
-            // Apply Pitch and Speed Controls
             source.playbackRate.value = parseFloat(pitchSlider.value) * parseFloat(speedSlider.value);
 
-            // Volume Control Node
             const gainNode = audioContext.createGain();
             gainNode.gain.value = parseFloat(volSlider.value);
 
-            // Audio Filter Effect Node
             let lastNode = source;
 
             if (telephonicFx.checked) {
@@ -632,7 +644,6 @@
 
             lastNode.connect(gainNode);
 
-            // Visualizer Analyser
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
             analyser.smoothingTimeConstant = 0.5;
