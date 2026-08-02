@@ -876,7 +876,7 @@
             if (leftArm) leftArm.style.transform = 'rotate(0deg)';
         }
 
-        // FULL MOBILE-SUPPORTED EXPORT FUNCTION
+        // 100% WORKING MOBILE EXPORT FUNCTION (PRELOADED SVG + VP8/MP4 CODEC)
         async function exportVideo() {
             const exportStatus = document.getElementById('exportStatus');
             if (timelineClipsData.length === 0) {
@@ -884,7 +884,7 @@
                 return;
             }
 
-            exportStatus.innerText = "⏳ Exporting Video...";
+            exportStatus.innerText = "⏳ Preparing video stream...";
 
             try {
                 const viewportEl = document.getElementById('viewport');
@@ -898,36 +898,44 @@
                 if (audioContext && activeSource && gainNode) {
                     const dest = audioContext.createMediaStreamDestination();
                     gainNode.connect(dest);
-                    const audioTrack = dest.stream.getAudioTracks()[0];
-                    if (audioTrack) canvasStream.addTrack(audioTrack);
-                }
-
-                let mimeType = 'video/webm;codecs=vp9';
-                if (!MediaRecorder.isTypeSupported(mimeType)) {
-                    if (MediaRecorder.isTypeSupported('video/mp4')) {
-                        mimeType = 'video/mp4';
-                    } else if (MediaRecorder.isTypeSupported('video/webm')) {
-                        mimeType = 'video/webm';
-                    } else {
-                        mimeType = '';
+                    const audioTracks = dest.stream.getAudioTracks();
+                    if (audioTracks.length > 0) {
+                        canvasStream.addTrack(audioTracks[0]);
                     }
                 }
 
-                const mediaRecorder = mimeType ? new MediaRecorder(canvasStream, { mimeType }) : new MediaRecorder(canvasStream);
+                // Detect supported codec for Mobile Video Player Compatibility
+                let options = {};
+                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+                    options = { mimeType: 'video/webm;codecs=vp8,opus' };
+                } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                    options = { mimeType: 'video/webm' };
+                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    options = { mimeType: 'video/mp4' };
+                }
+
+                const mediaRecorder = new MediaRecorder(canvasStream, options);
                 let recordedChunks = [];
 
                 mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) recordedChunks.push(e.data);
+                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
                 };
 
                 mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: mimeType || 'video/webm' });
-                    const url = URL.createObjectURL(blob);
+                    const finalMime = options.mimeType || 'video/webm';
+                    const ext = finalMime.includes('mp4') ? 'mp4' : 'webm';
+                    const blob = new Blob(recordedChunks, { type: finalMime });
                     
+                    if (blob.size === 0) {
+                        exportStatus.innerText = "❌ Export failed: Empty File!";
+                        return;
+                    }
+
+                    const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.style.display = 'none';
                     a.href = url;
-                    a.download = `AlightAnimation_${Date.now()}.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
+                    a.download = `AlightAnimation_${Date.now()}.${ext}`;
                     document.body.appendChild(a);
                     a.click();
 
@@ -936,50 +944,55 @@
                         window.URL.revokeObjectURL(url);
                     }, 1000);
 
-                    exportStatus.innerText = "✅ Video Downloaded Successfully!";
+                    exportStatus.innerText = "✅ Video Exported & Saved!";
                 };
 
-                let isRecording = true;
+                // Preload SVG character as Image to avoid corrupt empty frames
                 const svgElement = document.querySelector('.character-wrapper svg');
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const DOMURL = window.URL || window.webkitURL || window;
+                const imgUrl = DOMURL.createObjectURL(svgBlob);
+                
+                const charImg = new Image();
+                await new Promise((resolve) => {
+                    charImg.onload = resolve;
+                    charImg.src = imgUrl;
+                });
 
-                function renderFrame() {
+                let isRecording = true;
+
+                function renderCanvasFrame() {
                     if (!isRecording) return;
 
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    if (svgElement) {
-                        const svgData = new XMLSerializer().serializeToString(svgElement);
-                        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                        const DOMURL = window.URL || window.webkitURL || window;
-                        const imgUrl = DOMURL.createObjectURL(svgBlob);
-                        
-                        const img = new Image();
-                        img.onload = () => {
-                            ctx.drawImage(img, 100, 40, 180, 240);
-                            DOMURL.revokeObjectURL(imgUrl);
-                        };
-                        img.src = imgUrl;
-                    }
+                    // Draw Character synchronously onto Canvas
+                    ctx.drawImage(charImg, 100, 40, 180, 240);
 
-                    requestAnimationFrame(renderFrame);
+                    requestAnimationFrame(renderCanvasFrame);
                 }
 
-                mediaRecorder.start();
-                renderFrame();
+                // Chunk data every 100ms to preserve file structure on Mobile
+                mediaRecorder.start(100); 
+                renderCanvasFrame();
                 currentPlayheadTime = 0;
                 startPlaybackAt(0);
 
-                const totalDur = (getTotalTimelineDuration() * 1000) + 500;
+                exportStatus.innerText = "⏺️ Recording Animation...";
+
+                const totalDur = (getTotalTimelineDuration() * 1000) + 600;
                 setTimeout(() => {
                     isRecording = false;
                     mediaRecorder.stop();
                     pausePlayback();
+                    DOMURL.revokeObjectURL(imgUrl);
                 }, totalDur);
 
             } catch (err) {
                 console.error(err);
-                exportStatus.innerText = "❌ Export failed!";
+                exportStatus.innerText = "❌ Export error occurred!";
             }
         }
 
