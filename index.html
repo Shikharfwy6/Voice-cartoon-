@@ -447,6 +447,12 @@
         #right-leg { transform-origin: 210px 330px; }
         #head { transform-origin: 175px 130px; }
         #eyes { transform-origin: center center; transform-box: fill-box; }
+
+        .joint-active { cursor: grab; }
+        .joint-active:active { cursor: grabbing; }
+        .joint-active > path, .joint-active > ellipse, .joint-active > circle {
+            filter: drop-shadow(0 0 3px #ff4757);
+        }
     </style>
 </head>
 <body>
@@ -544,15 +550,24 @@
             </div>
 
             <div id="partRotateControls" style="display:none;">
-                <div class="section-label"><span id="partRotateLabel">Part</span> — Rotation</div>
+                <div class="section-label"><span id="partRotateLabel">Part</span> — Joint Control</div>
                 <div class="control-group">
-                    <div class="slider-label"><span>Rotate</span><span id="partRotVal">0°</span></div>
-                    <input type="range" id="partRotSlider" min="-90" max="90" value="0">
+                    <div class="slider-label"><span>↻ Rotate</span><span id="partRotVal">0°</span></div>
+                    <input type="range" id="partRotSlider" min="-180" max="180" value="0">
+                </div>
+                <div class="control-group">
+                    <div class="slider-label"><span>↔ Move X (joint position)</span><span id="partXVal">0px</span></div>
+                    <input type="range" id="partXSlider" min="-120" max="120" value="0">
+                </div>
+                <div class="control-group">
+                    <div class="slider-label"><span>↕ Move Y (joint position)</span><span id="partYVal">0px</span></div>
+                    <input type="range" id="partYSlider" min="-120" max="120" value="0">
                 </div>
                 <div class="control-row">
                     <button class="btn-tool" onclick="resetPartRotation()">↺ Reset This Part</button>
                     <button class="btn-tool" onclick="resetAllParts()">↺ Reset All Parts</button>
                 </div>
+                <div class="status-text" style="color:#a4b0be; text-align:left; font-size:0.7rem;">💡 Tip: Part ko canvas par seedha drag bhi kar sakte ho jab wo selected ho.</div>
             </div>
 
             <div class="section-label">Live FPS (Preview + Export)</div>
@@ -674,8 +689,14 @@
         let lipSyncEnabled = true;
         let mouthSensitivity = 1.0;
 
-        // Per-part rig rotation state (degrees)
-        let partRotations = { head: 0, 'left-arm': 0, 'right-arm': 0, 'left-leg': 0, 'right-leg': 0 };
+        // Per-part rig state: rotation (deg) + joint position offset (px)
+        let partRig = {
+            'head':      { rot: 0, x: 0, y: 0 },
+            'left-arm':  { rot: 0, x: 0, y: 0 },
+            'right-arm': { rot: 0, x: 0, y: 0 },
+            'left-leg':  { rot: 0, x: 0, y: 0 },
+            'right-leg': { rot: 0, x: 0, y: 0 }
+        };
         let currentSelectedPart = 'whole';
 
         let selectedElement = document.getElementById('characterWrapper');
@@ -713,6 +734,10 @@
         const partRotateLabel = document.getElementById('partRotateLabel');
         const partRotSlider = document.getElementById('partRotSlider');
         const partRotVal = document.getElementById('partRotVal');
+        const partXSlider = document.getElementById('partXSlider');
+        const partXVal = document.getElementById('partXVal');
+        const partYSlider = document.getElementById('partYSlider');
+        const partYVal = document.getElementById('partYVal');
 
         const partNames = {
             'head': '😀 Head',
@@ -723,11 +748,24 @@
             'mouth': '👄 Mouth'
         };
 
+        function clearJointHighlights() {
+            Object.keys(partRig).forEach(p => {
+                const el = document.getElementById(p);
+                if (el) el.classList.remove('joint-active');
+            });
+        }
+
         partChips.querySelectorAll('.part-chip').forEach(chip => {
             chip.addEventListener('click', () => {
                 partChips.querySelectorAll('.part-chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 currentSelectedPart = chip.dataset.part;
+
+                clearJointHighlights();
+                if (partRig[currentSelectedPart]) {
+                    const el = document.getElementById(currentSelectedPart);
+                    if (el) el.classList.add('joint-active');
+                }
 
                 if (currentSelectedPart === 'whole') {
                     wholeBodyControls.style.display = 'block';
@@ -739,8 +777,13 @@
                     wholeBodyControls.style.display = 'none';
                     partRotateControls.style.display = 'block';
                     partRotateLabel.innerText = partNames[currentSelectedPart] || currentSelectedPart;
-                    partRotSlider.value = partRotations[currentSelectedPart] || 0;
-                    partRotVal.innerText = `${partRotSlider.value}°`;
+                    const rig = partRig[currentSelectedPart];
+                    partRotSlider.value = rig.rot;
+                    partRotVal.innerText = `${rig.rot}°`;
+                    partXSlider.value = rig.x;
+                    partXVal.innerText = `${rig.x}px`;
+                    partYSlider.value = rig.y;
+                    partYVal.innerText = `${rig.y}px`;
                 }
             });
         });
@@ -749,45 +792,61 @@
             const val = parseInt(e.target.value);
             partRotVal.innerText = `${val}°`;
             if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
-                partRotations[currentSelectedPart] = val;
-                applyPartRotation(currentSelectedPart);
+                partRig[currentSelectedPart].rot = val;
+                applyPartTransform(currentSelectedPart);
             }
         });
 
-        function applyPartRotation(part) {
+        partXSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            partXVal.innerText = `${val}px`;
+            if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
+                partRig[currentSelectedPart].x = val;
+                applyPartTransform(currentSelectedPart);
+            }
+        });
+
+        partYSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            partYVal.innerText = `${val}px`;
+            if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
+                partRig[currentSelectedPart].y = val;
+                applyPartTransform(currentSelectedPart);
+            }
+        });
+
+        // Applies manual rig pose (rotation + x/y joint offset) combined with any live animation rotation
+        function applyPartTransform(part) {
             const el = document.getElementById(part);
             if (!el) return;
-            const deg = partRotations[part] || 0;
-            // Base idle animation angle (if any) is added on top separately during playback;
-            // here we just set the manual pose rotation.
-            el.dataset.manualRot = deg;
-            updatePartTransform(part);
+            const rig = partRig[part];
+            const anim = parseFloat(el.dataset.animRot || 0);
+            el.style.transform = `translate(${rig.x}px, ${rig.y}px) rotate(${rig.rot + anim}deg)`;
         }
 
+        // Kept for compatibility with lip-sync sway code — re-applies full transform when anim angle changes
         function updatePartTransform(part) {
-            const el = document.getElementById(part);
-            if (!el) return;
-            const manual = parseFloat(el.dataset.manualRot || 0);
-            const anim = parseFloat(el.dataset.animRot || 0);
-            el.style.transform = `rotate(${manual + anim}deg)`;
+            applyPartTransform(part);
         }
 
         function resetPartRotation() {
             if (currentSelectedPart === 'whole' || currentSelectedPart === 'mouth') return;
-            partRotations[currentSelectedPart] = 0;
-            partRotSlider.value = 0;
-            partRotVal.innerText = '0°';
-            applyPartRotation(currentSelectedPart);
+            partRig[currentSelectedPart] = { rot: 0, x: 0, y: 0 };
+            partRotSlider.value = 0; partRotVal.innerText = '0°';
+            partXSlider.value = 0; partXVal.innerText = '0px';
+            partYSlider.value = 0; partYVal.innerText = '0px';
+            applyPartTransform(currentSelectedPart);
         }
 
         function resetAllParts() {
-            Object.keys(partRotations).forEach(p => {
-                partRotations[p] = 0;
-                applyPartRotation(p);
+            Object.keys(partRig).forEach(p => {
+                partRig[p] = { rot: 0, x: 0, y: 0 };
+                applyPartTransform(p);
             });
             if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
-                partRotSlider.value = 0;
-                partRotVal.innerText = '0°';
+                partRotSlider.value = 0; partRotVal.innerText = '0°';
+                partXSlider.value = 0; partXVal.innerText = '0px';
+                partYSlider.value = 0; partYVal.innerText = '0px';
             }
         }
 
@@ -1130,7 +1189,7 @@
             const el = document.getElementById(part);
             if (!el) return;
             el.dataset.animRot = deg;
-            updatePartTransform(part);
+            applyPartTransform(part);
         }
 
         function resetPose() {
@@ -1428,6 +1487,56 @@
         document.getElementById('scaleSlider').oninput = applyTransformFromSliders;
 
         makeDraggable(characterWrapper);
+
+        // ============ DIRECT ON-CANVAS JOINT DRAGGING ============
+        // Lets the user grab an arm/leg/head on the character itself and drag it to a position,
+        // instead of only using sliders. Works only when that part is the selected part in the Rig tab.
+        Object.keys(partRig).forEach(part => {
+            const el = document.getElementById(part);
+            if (!el) return;
+            let dragging = false;
+            let startClientX, startClientY, startX, startY;
+
+            el.addEventListener('pointerdown', (e) => {
+                if (currentSelectedPart !== part) return; // only drag when this part is actively selected
+                e.stopPropagation();
+                dragging = true;
+                startClientX = e.touches ? e.touches[0].clientX : e.clientX;
+                startClientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startX = partRig[part].x;
+                startY = partRig[part].y;
+                window.addEventListener('pointermove', onJointMove);
+                window.addEventListener('pointerup', onJointUp);
+            });
+
+            function onJointMove(e) {
+                if (!dragging) return;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                // Account for character scale so drag distance feels 1:1 on screen
+                const scale = parseFloat(document.getElementById('scaleSlider').value) || 1;
+                const dx = (clientX - startClientX) / scale;
+                const dy = (clientY - startClientY) / scale;
+
+                let newX = Math.max(-120, Math.min(120, startX + dx));
+                let newY = Math.max(-120, Math.min(120, startY + dy));
+
+                partRig[part].x = Math.round(newX);
+                partRig[part].y = Math.round(newY);
+                applyPartTransform(part);
+
+                partXSlider.value = partRig[part].x;
+                partXVal.innerText = `${partRig[part].x}px`;
+                partYSlider.value = partRig[part].y;
+                partYVal.innerText = `${partRig[part].y}px`;
+            }
+
+            function onJointUp() {
+                dragging = false;
+                window.removeEventListener('pointermove', onJointMove);
+                window.removeEventListener('pointerup', onJointUp);
+            }
+        });
 
         function setRatio(ratio, e) {
             document.querySelectorAll('#tab-ratio .btn-opt').forEach(b => b.classList.remove('active'));
