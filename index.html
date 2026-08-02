@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cartoon Voice & Lip-Sync Studio</title>
     
-    <!-- Embedded CSS -->
     <style>
         * {
             box-sizing: border-box;
@@ -148,21 +147,20 @@
             height: 100%;
         }
 
-        /* Lip Sync Animation Dynamic Scaling */
+        /* Fixed Transform Origin for Lip Sync */
         #mouth {
-            transform-origin: center;
-            transition: transform 0.05s ease-in-out;
+            transform-origin: center center;
+            transform-box: fill-box;
+            transition: transform 0.05s ease-out;
         }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <!-- Sidebar Controls -->
         <aside class="sidebar">
             <h2>🎨 Controls</h2>
 
-            <!-- Character Selection -->
             <div class="control-group">
                 <h3>1. Select Character</h3>
                 <div class="character-selector">
@@ -172,14 +170,12 @@
                 </div>
             </div>
 
-            <!-- Custom Vector Upload -->
             <div class="control-group">
                 <h3>2. Upload Custom SVG</h3>
                 <input type="file" id="svgUpload" accept=".svg">
                 <small>Ensure custom SVG has <code>id="mouth"</code> element!</small>
             </div>
 
-            <!-- Voice Controls -->
             <div class="control-group">
                 <h3>3. Voice & Recording</h3>
                 <div class="voice-effects">
@@ -194,17 +190,12 @@
             </div>
         </aside>
 
-        <!-- Main Stage -->
         <main class="stage-container">
-            <div id="stage" class="stage">
-                <!-- SVG Characters will be injected here dynamically -->
-            </div>
+            <div id="stage" class="stage"></div>
         </main>
     </div>
 
-    <!-- Embedded JavaScript -->
     <script>
-        // Default Built-in Vector Characters (SVGs)
         const characters = {
             boy: `
                 <svg viewBox="0 0 200 200">
@@ -212,7 +203,7 @@
                     <circle cx="70" cy="80" r="10" fill="#333" />
                     <circle cx="130" cy="80" r="10" fill="#333" />
                     <path d="M 30 80 Q 100 10 170 80" fill="#4a2e1d" />
-                    <ellipse id="mouth" cx="100" cy="130" rx="20" ry="2" fill="#a00000" />
+                    <ellipse id="mouth" cx="100" cy="130" rx="20" ry="4" fill="#a00000" />
                 </svg>`,
             robot: `
                 <svg viewBox="0 0 200 200">
@@ -221,7 +212,7 @@
                     <rect x="120" y="60" width="30" height="20" fill="#00d2d3" />
                     <line x1="100" y1="30" x2="100" y2="10" stroke="#7f8c8d" stroke-width="6"/>
                     <circle cx="100" cy="10" r="8" fill="#e74c3c" />
-                    <rect id="mouth" x="70" y="125" width="60" height="4" fill="#2c3e50" rx="2" />
+                    <rect id="mouth" x="70" y="125" width="60" height="6" fill="#2c3e50" rx="2" />
                 </svg>`,
             monster: `
                 <svg viewBox="0 0 200 200">
@@ -230,7 +221,7 @@
                     <circle cx="100" cy="80" r="10" fill="#000" />
                     <polygon points="50,50 40,20 65,40" fill="#f7b731" />
                     <polygon points="150,50 160,20 135,40" fill="#f7b731" />
-                    <ellipse id="mouth" cx="100" cy="130" rx="25" ry="3" fill="#2d98da" />
+                    <ellipse id="mouth" cx="100" cy="130" rx="25" ry="5" fill="#2d98da" />
                 </svg>`
         };
 
@@ -240,6 +231,7 @@
         let audioContext;
         let audioBuffer;
         let activeSource = null;
+        let animationFrameId = null;
 
         const stage = document.getElementById('stage');
         const recordBtn = document.getElementById('recordBtn');
@@ -247,10 +239,8 @@
         const pitchInput = document.getElementById('pitch');
         const svgUpload = document.getElementById('svgUpload');
 
-        // Load initial character
         stage.innerHTML = characters.boy;
 
-        // Select Character Function
         function selectCharacter(type, event) {
             document.querySelectorAll('.character-selector button').forEach(btn => btn.classList.remove('active'));
             if(event) event.target.classList.add('active');
@@ -259,7 +249,6 @@
             }
         }
 
-        // Upload Custom SVG File
         svgUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -271,7 +260,6 @@
             }
         });
 
-        // Audio Recording Logic
         recordBtn.addEventListener('click', async () => {
             if (!mediaRecorder || mediaRecorder.state === 'inactive') {
                 try {
@@ -294,7 +282,7 @@
                     recordBtn.innerText = '🛑 Stop Recording';
                     recordBtn.classList.add('recording');
                 } catch (err) {
-                    alert('Microphone access is required to record audio!');
+                    alert('Error accessing microphone: ' + err.message);
                 }
             } else {
                 mediaRecorder.stop();
@@ -303,7 +291,6 @@
             }
         });
 
-        // Play Audio + Cartoon Pitch Shift Effect + Lip Sync
         playBtn.addEventListener('click', () => {
             if (!audioBuffer) return;
 
@@ -315,16 +302,19 @@
                 try { activeSource.stop(); } catch(e){}
             }
 
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
             const source = audioContext.createBufferSource();
             activeSource = source;
             source.buffer = audioBuffer;
 
-            // Apply Pitch Shift (Cartoon Voice Effect)
             source.playbackRate.value = parseFloat(pitchInput.value);
 
-            // Audio Analyzer for Lip Sync
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.5; // Smooth mouth movement
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
 
@@ -333,11 +323,10 @@
 
             source.start(0);
 
-            // Dynamic Lip Sync Loop
             function animateMouth() {
                 const mouth = document.getElementById('mouth');
                 
-                if (!mouth || !activeSource) return;
+                if (!mouth) return;
 
                 analyser.getByteFrequencyData(dataArray);
                 
@@ -347,17 +336,19 @@
                 }
                 let average = sum / bufferLength;
 
-                if (mouth) {
-                    let scaleY = 1 + (average / 12);
-                    mouth.style.transform = `scaleY(${scaleY})`;
-                }
+                // Controlled scaling so mouth stays in position
+                let scaleY = 1 + (average / 35); 
+                if (scaleY > 3.5) scaleY = 3.5; // Cap max open limit
 
-                requestAnimationFrame(animateMouth);
+                mouth.style.transform = `scaleY(${scaleY})`;
+
+                animationFrameId = requestAnimationFrame(animateMouth);
             }
 
             animateMouth();
 
             source.onended = () => {
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
                 const mouth = document.getElementById('mouth');
                 if (mouth) mouth.style.transform = 'scaleY(1)';
                 activeSource = null;
