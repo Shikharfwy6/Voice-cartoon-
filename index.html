@@ -43,7 +43,6 @@
             gap: 8px;
         }
 
-        /* 3D Perspective Stage Workspace */
         .workspace {
             flex: 1;
             display: flex;
@@ -107,7 +106,7 @@
         }
 
         .bottom-panel {
-            height: 310px;
+            height: 330px;
             background: #181920;
             border-top: 1px solid #282a36;
             display: flex;
@@ -270,6 +269,62 @@
             text-align: center;
         }
 
+        /* Dynamic Timeline UI */
+        .timeline-container {
+            background: #101115;
+            border: 1px solid #282a36;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 5px;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #ff4757;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .timeline-track-wrapper {
+            position: relative;
+            background: #20222c;
+            height: 36px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #333;
+        }
+
+        .timeline-track {
+            height: 100%;
+            background: linear-gradient(90deg, #2e313d 0%, #ff4757 100%);
+            width: 100%;
+            position: relative;
+            min-width: 100%;
+        }
+
+        .timeline-playhead {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: #00ffffff;
+            box-shadow: 0 0 8px #00ffff;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .timeline-ruler {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: #747d8c;
+            margin-top: 4px;
+            padding: 0 2px;
+        }
+
         #mouth { transform-origin: center center; transform-box: fill-box; }
         #left-arm { transform-origin: top right; transform-box: fill-box; }
         #right-arm { transform-origin: top left; transform-box: fill-box; }
@@ -333,12 +388,12 @@
         <div class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('transform', event)">📐 3D Space (X, Y, Z)</button>
             <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Sync</button>
+            <button class="tab-btn" onclick="switchTab('timeline', event)">⏱️ Dynamic Timeline</button>
             <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Assets & BG</button>
             <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Aspect Ratio</button>
             <button class="tab-btn" onclick="switchTab('layers', event)">📚 Layers Stack</button>
         </div>
 
-        <!-- 3D Transform Tab -->
         <div id="tab-transform" class="tab-content active">
             <div class="control-group">
                 <div class="slider-label"><span>X Axis (Horizontal)</span><span id="xVal">100px</span></div>
@@ -361,7 +416,6 @@
             </div>
         </div>
 
-        <!-- Voice & Video Import Controls Tab -->
         <div id="tab-voice" class="tab-content">
             <div id="audioStatus" class="status-text"></div>
 
@@ -396,6 +450,25 @@
             <div class="control-row">
                 <button id="recordBtn" class="btn-record">🎤 Record Mic</button>
                 <button id="playBtn" class="btn-play" disabled>▶️ Play</button>
+            </div>
+        </div>
+
+        <!-- Auto-Expanding Dynamic Timeline Tab -->
+        <div id="tab-timeline" class="tab-content">
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <span>⏱️ Voice Timeline Track</span>
+                    <span id="timeCounter">0:00 / 0:00</span>
+                </div>
+                <div class="timeline-track-wrapper" id="trackWrapper">
+                    <div class="timeline-track" id="timelineTrack">
+                        <div class="timeline-playhead" id="playhead"></div>
+                    </div>
+                </div>
+                <div class="timeline-ruler" id="timelineRuler">
+                    <span>0s</span>
+                    <span>End</span>
+                </div>
             </div>
         </div>
 
@@ -454,6 +527,10 @@
         const telephonicFx = document.getElementById('telephonicFx');
         const audioStatus = document.getElementById('audioStatus');
 
+        const playhead = document.getElementById('playhead');
+        const timeCounter = document.getElementById('timeCounter');
+        const timelineRuler = document.getElementById('timelineRuler');
+
         function switchTab(tabId, e) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -506,7 +583,20 @@
             }
         });
 
-        // Gallery Video Audio Extractor Implementation
+        // Setup Dynamic Timeline based on Audio Buffer Duration
+        function initTimeline(duration) {
+            const durSec = Math.round(duration);
+            timeCounter.innerText = `0:00 / 0:${durSec < 10 ? '0' + durSec : durSec}`;
+            
+            timelineRuler.innerHTML = `
+                <span>0s</span>
+                <span>${Math.round(durSec / 2)}s</span>
+                <span>${durSec}s</span>
+            `;
+            playhead.style.left = `0%`;
+        }
+
+        // Gallery Video Audio Extractor
         document.getElementById('videoUpload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -515,11 +605,8 @@
             
             try {
                 const fileArrayBuffer = await file.arrayBuffer();
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 
-                // Decode video file's embedded audio track
                 audioBuffer = await audioContext.decodeAudioData(fileArrayBuffer);
                 
                 playBtn.disabled = false;
@@ -527,13 +614,15 @@
                 isPlaying = false;
                 isPaused = false;
                 audioStatus.innerText = "✅ Video voice extracted successfully!";
+                
+                initTimeline(audioBuffer.duration);
             } catch (err) {
                 audioStatus.innerText = "❌ Failed to extract audio from video.";
                 alert("Error processing video file: " + err.message);
             }
         });
 
-        // 3D Space Matrix Engine
+        // 3D Space Transform System
         function getTransformValues(el) {
             const transform = el.style.transform;
             const match3D = transform.match(/translate3d\(([^px]+)px,\s*([^px]+)px,\s*([^px]+)px\)/);
@@ -650,6 +739,8 @@
                         isPlaying = false;
                         isPaused = false;
                         audioStatus.innerText = "🎤 Mic voice recorded!";
+                        
+                        initTimeline(audioBuffer.duration);
                     };
 
                     mediaRecorder.start();
@@ -665,7 +756,7 @@
             }
         });
 
-        // Dynamic Playback and Lip Sync Controls
+        // Play/Pause & Real-Time Timeline Progress Engine
         playBtn.addEventListener('click', () => {
             if (!audioBuffer) return;
 
@@ -744,6 +835,7 @@
                     pauseOffset = 0;
                     playBtn.innerText = '▶️ Play';
                     playBtn.classList.remove('paused');
+                    playhead.style.left = '100%';
                     if (animationFrameId) cancelAnimationFrame(animationFrameId);
                     resetPose();
                 }
@@ -753,6 +845,18 @@
         function animate() {
             if (!isPlaying) return;
 
+            // Live Playhead Movement & Counter Sync
+            const currentTime = pauseOffset + (audioContext.currentTime - startTime);
+            const duration = audioBuffer.duration;
+            const progress = Math.min((currentTime / duration) * 100, 100);
+            
+            playhead.style.left = `${progress}%`;
+            
+            const curSec = Math.floor(currentTime);
+            const totalSec = Math.floor(duration);
+            timeCounter.innerText = `0:${curSec < 10 ? '0' + curSec : curSec} / 0:${totalSec < 10 ? '0' + totalSec : totalSec}`;
+
+            // Character Lip Sync Logic
             const mouth = document.getElementById('mouth');
             const leftArm = document.getElementById('left-arm');
             const rightArm = document.getElementById('right-arm');
