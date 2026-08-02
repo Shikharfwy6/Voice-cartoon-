@@ -235,6 +235,11 @@
             cursor: pointer;
         }
 
+        .btn-play:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .btn-export {
             background: #3742fa;
             color: #fff;
@@ -244,6 +249,11 @@
             font-weight: bold;
             width: 100%;
             cursor: pointer;
+        }
+
+        .btn-export:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .status-text {
@@ -265,6 +275,7 @@
             display: flex;
             gap: 8px;
             margin-bottom: 10px;
+            flex-wrap: wrap;
         }
 
         .btn-tool {
@@ -470,11 +481,11 @@
                 </label>
             </div>
             <div class="control-group">
-                <div class="slider-label"><span>🎚️ Voice Pitch Tone</span><span id="pitchVal">0 semitones</span></div>
+                <div class="slider-label"><span>🎚️ Voice Pitch Tone (Frequency Shift)</span><span id="pitchVal">0 semitones</span></div>
                 <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0">
             </div>
             <div class="control-group">
-                <div class="slider-label"><span>⚡ Playback Speed</span><span id="speedVal">1.0x</span></div>
+                <div class="slider-label"><span>⚡ Playback Speed (Tempo Only)</span><span id="speedVal">1.0x</span></div>
                 <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0">
             </div>
             <div class="control-group">
@@ -547,10 +558,10 @@
         let isPlaying = false;
         let startTime = 0;
 
-        let timelineClipsData = []; 
+        let timelineClipsData = [];
         let selectedClipId = null;
-        let currentPlayheadTime = 0; 
-        
+        let currentPlayheadTime = 0;
+
         let pitchSemiTones = 0;
         let playbackSpeed = 1.0;
 
@@ -562,6 +573,7 @@
         const memeOverlay = document.getElementById('memeOverlay');
         const memePlayer = document.getElementById('memePlayer');
         const playBtn = document.getElementById('playBtn');
+        const exportBtn = document.getElementById('exportBtn');
 
         function switchTab(tabId, e) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -582,12 +594,12 @@
             timelineClipsData.forEach((clip) => {
                 const clipDiv = document.createElement('div');
                 clipDiv.className = `timeline-clip ${clip.type === 'meme' ? 'meme-clip' : ''} ${selectedClipId === clip.id ? 'selected' : ''}`;
-                
+
                 const adjustedDuration = clip.duration / playbackSpeed;
                 const widthPercent = totalDur > 0 ? (adjustedDuration / totalDur) * 100 : 100;
                 clipDiv.style.width = `${widthPercent}%`;
                 clipDiv.innerText = clip.type === 'voice' ? `🗣️ Voice (${adjustedDuration.toFixed(1)}s)` : `🤡 Meme (${adjustedDuration.toFixed(1)}s)`;
-                
+
                 clipDiv.onclick = (e) => {
                     e.stopPropagation();
                     selectedClipId = clip.id;
@@ -615,7 +627,7 @@
             if (totalDur <= 0) return;
 
             currentPlayheadTime = (clickX / rect.width) * totalDur;
-            
+
             if (isPlaying) {
                 startPlaybackAt(currentPlayheadTime);
             } else {
@@ -680,6 +692,7 @@
                 });
                 renderTimelineUI();
                 playBtn.disabled = false;
+                exportBtn.disabled = false;
             };
         });
 
@@ -699,8 +712,9 @@
                 const fileArrayBuffer = await file.arrayBuffer();
                 if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 audioBuffer = await audioContext.decodeAudioData(fileArrayBuffer);
-                
+
                 playBtn.disabled = false;
+                exportBtn.disabled = false;
                 timelineClipsData = [{
                     id: 'voice_' + Date.now(),
                     type: 'voice',
@@ -709,7 +723,8 @@
                 renderTimelineUI();
                 document.getElementById('audioStatus').innerText = "✅ Audio Track Loaded!";
             } catch (err) {
-                alert("Audio processing failed!");
+                console.error(err);
+                document.getElementById('audioStatus').innerText = "❌ Audio processing failed!";
             }
         });
 
@@ -727,6 +742,11 @@
             }
             memePlayer.playbackRate = playbackSpeed;
             renderTimelineUI();
+        });
+
+        document.getElementById('volSlider').addEventListener('input', (e) => {
+            document.getElementById('volVal').innerText = Math.round(parseFloat(e.target.value) * 100) + '%';
+            if (gainNode) gainNode.gain.value = parseFloat(e.target.value);
         });
 
         function updateAudioFilterPitch() {
@@ -876,7 +896,23 @@
             if (leftArm) leftArm.style.transform = 'rotate(0deg)';
         }
 
-        // 100% FIXED EXPORT SYSTEM FOR MOBILE CHROME / ANDROID
+        // ===================== FIXED EXPORT FUNCTION =====================
+        // Key fixes vs original:
+        // 1. Waits for the FIRST real frame to be drawn (await) before starting
+        //    captureStream()/MediaRecorder — this was the main cause of broken/
+        //    blank/corrupt output files.
+        // 2. Removed the fake 'video/mp4' fallback — canvas.captureStream()
+        //    cannot actually be encoded as playable mp4 in-browser; claiming
+        //    mp4 while recording webm data produces a broken file that players
+        //    (like the one in the screenshot) can't open.
+        // 3. mediaRecorder.start(100) with a timeslice so chunks flush
+        //    periodically instead of only at stop() — avoids empty/truncated
+        //    blobs if something interrupts recording.
+        // 4. drawFrame() is awaited in a loop (instead of fire-and-forget
+        //    Image() loads) so every captured frame is guaranteed to have the
+        //    character actually drawn on it.
+        // 5. Export button is disabled while exporting so it can't be tapped
+        //    twice and start overlapping recorders.
         async function exportVideo() {
             const exportStatus = document.getElementById('exportStatus');
             if (timelineClipsData.length === 0) {
@@ -884,113 +920,145 @@
                 return;
             }
 
-            exportStatus.innerText = "⏳ Initializing Canvas Stream...";
+            if (!('MediaRecorder' in window)) {
+                exportStatus.innerText = "❌ Ye browser video recording support nahi karta!";
+                return;
+            }
+
+            exportBtn.disabled = true;
+            exportStatus.innerText = "⏳ Preparing export...";
+
+            const viewportEl = document.getElementById('viewport');
+            const canvas = document.createElement('canvas');
+            canvas.width = viewportEl.clientWidth || 640;
+            canvas.height = viewportEl.clientHeight || 360;
+            const ctx = canvas.getContext('2d');
+            const svgElement = document.querySelector('.character-wrapper svg');
+
+            // Draws exactly one frame onto the canvas. Awaited, so callers
+            // are guaranteed the frame is fully painted before continuing.
+            function drawFrame() {
+                return new Promise((resolve) => {
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    if (!svgElement) { resolve(); return; }
+
+                    const svgData = new XMLSerializer().serializeToString(svgElement);
+                    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(svgBlob);
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 100, 40, 180, 240);
+                        URL.revokeObjectURL(url);
+                        resolve();
+                    };
+                    img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+                    img.src = url;
+                });
+            }
 
             try {
-                const viewportEl = document.getElementById('viewport');
-                const canvas = document.createElement('canvas');
-                canvas.width = viewportEl.clientWidth || 640;
-                canvas.height = viewportEl.clientHeight || 360;
-                const ctx = canvas.getContext('2d');
+                // Paint the first real frame BEFORE creating the stream/recorder.
+                await drawFrame();
 
-                // Frame Capture Stream
                 const canvasStream = canvas.captureStream(30);
 
-                if (audioContext && activeSource && gainNode) {
-                    const dest = audioContext.createMediaStreamDestination();
-                    gainNode.connect(dest);
-                    const audioTracks = dest.stream.getAudioTracks();
-                    if (audioTracks.length > 0) {
-                        canvasStream.addTrack(audioTracks[0]);
-                    }
+                // Prepare an audio destination in advance so it exists even if
+                // playback hasn't started producing the activeSource yet.
+                let audioDestNode = null;
+                if (audioContext) {
+                    audioDestNode = audioContext.createMediaStreamDestination();
                 }
 
-                // Codec fallbacks for Chrome Mobile
-                let options = {};
-                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
-                    options = { mimeType: 'video/webm;codecs=vp8' };
-                } else if (MediaRecorder.isTypeSupported('video/webm')) {
-                    options = { mimeType: 'video/webm' };
-                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-                    options = { mimeType: 'video/mp4' };
+                let mimeType = '';
+                const candidates = [
+                    'video/webm;codecs=vp9,opus',
+                    'video/webm;codecs=vp8,opus',
+                    'video/webm'
+                ];
+                for (const c of candidates) {
+                    if (MediaRecorder.isTypeSupported(c)) { mimeType = c; break; }
+                }
+                if (!mimeType) {
+                    exportStatus.innerText = "❌ Is device/browser mein video export supported format nahi mila!";
+                    exportBtn.disabled = false;
+                    return;
                 }
 
-                const mediaRecorder = new MediaRecorder(canvasStream, options);
+                const mediaRecorder = new MediaRecorder(canvasStream, { mimeType });
                 let recordedChunks = [];
 
                 mediaRecorder.ondataavailable = (e) => {
                     if (e.data && e.data.size > 0) recordedChunks.push(e.data);
                 };
 
-                mediaRecorder.onstop = () => {
-                    const finalMime = options.mimeType || 'video/webm';
-                    const ext = finalMime.includes('mp4') ? 'mp4' : 'webm';
-                    const blob = new Blob(recordedChunks, { type: finalMime });
-
-                    if (blob.size === 0) {
-                        exportStatus.innerText = "❌ Mobile Restriction! Open file in Google Chrome.";
-                        return;
-                    }
-
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = `AlightAnimation_${Date.now()}.${ext}`;
-                    document.body.appendChild(a);
-                    a.click();
-
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-                    }, 1000);
-
-                    exportStatus.innerText = "✅ Video Exported & Saved!";
-                };
-
-                // Convert SVG Direct via Data-URI (Prevents empty/corrupt frame bug)
-                const svgElement = document.querySelector('.character-wrapper svg');
-                const svgString = new XMLSerializer().serializeToString(svgElement);
-                const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
-
-                const charImg = new Image();
-                await new Promise((resolve) => {
-                    charImg.onload = resolve;
-                    charImg.src = svgUrl;
+                const stopPromise = new Promise((resolve) => {
+                    mediaRecorder.onstop = resolve;
                 });
 
-                // Warmup Render Draw
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(charImg, 100, 40, 180, 240);
-
-                mediaRecorder.start();
+                mediaRecorder.onerror = (e) => {
+                    console.error('MediaRecorder error:', e);
+                };
 
                 let isRecording = true;
-                function drawFrame() {
+
+                async function renderLoop() {
                     if (!isRecording) return;
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(charImg, 100, 40, 180, 240);
-                    requestAnimationFrame(drawFrame);
+                    await drawFrame();
+                    requestAnimationFrame(renderLoop);
                 }
 
-                drawFrame();
+                // Start playback first so activeSource/gainNode exist, then
+                // route their audio into the recorder's destination.
                 currentPlayheadTime = 0;
                 startPlaybackAt(0);
+                if (gainNode && audioDestNode) {
+                    gainNode.connect(audioDestNode);
+                    const audioTrack = audioDestNode.stream.getAudioTracks()[0];
+                    if (audioTrack) canvasStream.addTrack(audioTrack);
+                }
 
-                exportStatus.innerText = "⏺️ Exporting Video... Wait till complete!";
+                mediaRecorder.start(100); // timeslice -> periodic flush
+                exportStatus.innerText = "⏺️ Recording...";
+                renderLoop();
 
-                const totalDur = (getTotalTimelineDuration() * 1000) + 800;
+                const totalDur = (getTotalTimelineDuration() * 1000) + 500;
+
+                await new Promise((resolve) => setTimeout(resolve, totalDur));
+
+                isRecording = false;
+                pausePlayback();
+                mediaRecorder.stop();
+                await stopPromise;
+
+                if (recordedChunks.length === 0) {
+                    exportStatus.innerText = "❌ Export failed: koi data record nahi hua. Dobara try karein.";
+                    exportBtn.disabled = false;
+                    return;
+                }
+
+                const blob = new Blob(recordedChunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `AlightAnimation_${Date.now()}.webm`;
+                document.body.appendChild(a);
+                a.click();
+
                 setTimeout(() => {
-                    isRecording = false;
-                    mediaRecorder.stop();
-                    pausePlayback();
-                }, totalDur);
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 1000);
 
+                exportStatus.innerText = "✅ Video Downloaded Successfully!";
             } catch (err) {
                 console.error(err);
-                exportStatus.innerText = "❌ Browser Blocked Canvas Export";
+                exportStatus.innerText = "❌ Export failed! " + (err && err.message ? err.message : '');
+            } finally {
+                exportBtn.disabled = false;
             }
         }
 
@@ -1043,6 +1111,10 @@
 
         function applyTransformFromSliders() {
             if(!selectedElement) return;
+            document.getElementById('xVal').innerText = posXSlider.value + 'px';
+            document.getElementById('yVal').innerText = posYSlider.value + 'px';
+            document.getElementById('zVal').innerText = posZSlider.value + 'px';
+            document.getElementById('sVal').innerText = parseFloat(scaleSlider.value).toFixed(1) + 'x';
             selectedElement.style.transform = `translate3d(${posXSlider.value}px, ${posYSlider.value}px, ${posZSlider.value}px) scale(${scaleSlider.value})`;
         }
 
