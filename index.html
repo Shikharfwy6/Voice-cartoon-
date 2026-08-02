@@ -2,157 +2,58 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2D Pro Animation Studio</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2D Alight Animation Studio</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
-            background-color: #121212;
-            color: #fff;
+            background-color: #0d0e12;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
 
-        .app-container {
+        /* Top Navigation Header */
+        .app-header {
+            height: 50px;
+            background: #181920;
             display: flex;
-            height: 100vh;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            border-bottom: 1px solid #282a36;
+            z-index: 20;
         }
 
-        /* Sidebar Styling */
-        .sidebar {
-            width: 360px;
-            background: #1e1e1e;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
-            z-index: 10;
-            overflow-y: auto;
-        }
-
-        .sidebar h2 {
+        .app-title {
             color: #ff4757;
-            font-size: 1.3rem;
-            border-bottom: 2px solid #2f3542;
-            padding-bottom: 8px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            background: #252830;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        .control-group h3 {
-            font-size: 0.9rem;
-            color: #2ed573;
-            text-transform: uppercase;
-        }
-
-        .btn-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-        }
-
-        .btn-option {
-            padding: 8px;
-            border: none;
-            background: #2f3542;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: 0.2s;
-        }
-
-        .btn-option.active, .btn-option:hover {
-            background: #ff4757;
-        }
-
-        .axis-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-        }
-
-        .axis-box {
-            display: flex;
-            flex-direction: column;
-            font-size: 0.75rem;
-            color: #a4b0be;
-        }
-
-        .axis-box input {
-            background: #1e1e1e;
-            border: 1px solid #2f3542;
-            color: white;
-            padding: 5px;
-            border-radius: 4px;
-            margin-top: 3px;
-        }
-
-        input[type="file"] {
-            background: #1e1e1e;
-            padding: 6px;
-            border-radius: 4px;
-            color: white;
-            font-size: 0.75rem;
-            border: 1px solid #2f3542;
-        }
-
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .btn {
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
             font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .btn-record { background: #ff4757; color: white; }
-        .btn-record.recording { background: #ff6b81; animation: pulse 1s infinite; }
-        .btn-play { background: #2ed573; color: #1e1e1e; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
-        /* Stage Area */
-        .main-workspace {
-            flex: 1;
+            font-size: 1.1rem;
             display: flex;
-            flex-direction: column;
-            background: #0a0a0a;
+            align-items: center;
+            gap: 8px;
         }
 
-        .stage-container {
+        /* Workspace Canvas Area */
+        .workspace {
             flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
+            background: #050507;
             position: relative;
             overflow: hidden;
-            background: #181818;
+            padding: 10px;
         }
 
         .viewport {
@@ -160,24 +61,35 @@
             background-color: #ffffff;
             background-size: cover;
             background-position: center;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            transition: width 0.3s, height 0.3s;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
+            border-radius: 6px;
             overflow: hidden;
+            touch-action: none; /* Mobile touch gesture support */
         }
 
         /* Aspect Ratios */
-        .ratio-16-9 { width: 768px; height: 432px; }
-        .ratio-9-16 { width: 324px; height: 576px; }
-        .ratio-1-1  { width: 450px; height: 450px; }
+        .ratio-16-9 { width: 100%; max-width: 640px; aspect-ratio: 16/9; }
+        .ratio-9-16 { height: 100%; max-height: 480px; aspect-ratio: 9/16; }
+        .ratio-1-1  { width: 100%; max-width: 380px; aspect-ratio: 1/1; }
+
+        /* Draggable Transform Items */
+        .draggable-element {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: move;
+            touch-action: none;
+            display: inline-block;
+        }
+
+        .draggable-element.selected {
+            outline: 2px dashed #ff4757;
+            outline-offset: 4px;
+        }
 
         .character-wrapper {
-            position: absolute;
-            width: 300px;
-            height: 400px;
-            transform-origin: center center;
-            top: 50px;
-            left: 200px;
-            cursor: move;
+            width: 180px;
+            height: 240px;
         }
 
         .character-wrapper svg {
@@ -186,56 +98,150 @@
             overflow: visible;
         }
 
-        /* Layers Panel Bottom Area */
-        .timeline-panel {
-            height: 180px;
-            background: #181818;
-            border-top: 2px solid #2f3542;
-            padding: 10px;
+        .asset-wrapper img {
+            width: 100px;
+            height: auto;
+            pointer-events: none;
+        }
+
+        /* Bottom Controls Drawer (Alight Motion Style) */
+        .bottom-panel {
+            height: 250px;
+            background: #181920;
+            border-top: 1px solid #282a36;
             display: flex;
             flex-direction: column;
+            z-index: 20;
+        }
+
+        .tab-bar {
+            display: flex;
+            background: #101115;
+            border-bottom: 1px solid #282a36;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 12px 18px;
+            background: none;
+            border: none;
+            color: #a4b0be;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: #ff4757;
+            border-bottom-color: #ff4757;
+            background: #181920;
+        }
+
+        .tab-content {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Control Rows & Grids */
+        .control-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
         }
 
-        .timeline-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .btn-opt {
+            padding: 10px;
+            border: 1px solid #282a36;
+            background: #20222c;
+            color: white;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-opt.active {
+            background: #ff4757;
+            border-color: #ff4757;
+        }
+
+        .file-btn {
+            background: #20222c;
+            border: 1px dashed #4b4b4b;
+            color: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
             font-size: 0.85rem;
-            color: #2ed573;
+            cursor: pointer;
+            width: 100%;
         }
 
-        .layer-list {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            overflow-y: auto;
+        .file-btn input { display: none; }
+
+        .btn-record {
+            background: #ff4757;
+            color: #fff;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            width: 100%;
         }
 
+        .btn-play {
+            background: #2ed573;
+            color: #000;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        .btn-record.recording {
+            animation: pulse 1s infinite;
+            background: #ff6b81;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        /* Layers Panel */
         .layer-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #252830;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            background: #20222c;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
         }
 
-        .layer-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .layer-item.active {
+            border: 1px solid #ff4757;
         }
 
-        .layer-btn {
-            background: none;
-            border: none;
-            color: #a4b0be;
-            cursor: pointer;
-        }
-
-        /* Dynamic SVG Transformations */
+        /* Dynamic SVG Animations */
         #mouth { transform-origin: center center; transform-box: fill-box; }
         #left-arm { transform-origin: top right; transform-box: fill-box; }
         #right-arm { transform-origin: top left; transform-box: fill-box; }
@@ -246,213 +252,274 @@
 </head>
 <body>
 
-    <div class="app-container">
-        <!-- Sidebar Controls -->
-        <aside class="sidebar">
-            <h2>🎬 2D Animation Studio</h2>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="app-title">🎬 2D Animation Studio</div>
+    </header>
 
-            <!-- 1. Voice Presets -->
-            <div class="control-group">
-                <h3>1. Voice Selector</h3>
-                <div class="btn-grid">
-                    <button class="btn-option active" onclick="setVoice('normal', event)">Normal</button>
-                    <button class="btn-option" onclick="setVoice('kid', event)">Funny Kid</button>
-                    <button class="btn-option" onclick="setVoice('monster', event)">Deep/Ghost</button>
-                </div>
-            </div>
-
-            <!-- 2. Background Upload -->
-            <div class="control-group">
-                <h3>2. Stage Background</h3>
-                <input type="file" id="bgUpload" accept="image/*">
-            </div>
-
-            <!-- 3. Ratio Selector -->
-            <div class="control-group">
-                <h3>3. Aspect Ratio</h3>
-                <div class="btn-grid">
-                    <button class="btn-option active" onclick="setRatio('16-9', event)">16:9</button>
-                    <button class="btn-option" onclick="setRatio('9-16', event)">9:16 Shorts</button>
-                    <button class="btn-option" onclick="setRatio('1-1', event)">1:1 Square</button>
-                </div>
-            </div>
-
-            <!-- 4. Position & Scale (X, Y, Z Axis) -->
-            <div class="control-group">
-                <h3>4. Character Position (X, Y, Z Axis)</h3>
-                <div class="axis-inputs">
-                    <div class="axis-box">
-                        <label>X Axis (Left/Right)</label>
-                        <input type="number" id="posX" value="200" oninput="updateTransform()">
-                    </div>
-                    <div class="axis-box">
-                        <label>Y Axis (Up/Down)</label>
-                        <input type="number" id="posY" value="50" oninput="updateTransform()">
-                    </div>
-                    <div class="axis-box">
-                        <label>Z (Scale/Depth)</label>
-                        <input type="number" id="posZ" value="1" step="0.1" min="0.2" max="3" oninput="updateTransform()">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5. Voice Recording & Sync -->
-            <div class="control-group">
-                <h3>5. Record & Sync Voice</h3>
-                <div class="action-buttons">
-                    <button id="recordBtn" class="btn btn-record">🎤 Start Recording</button>
-                    <button id="playBtn" class="btn btn-play" disabled>▶️ Sync & Play Animation</button>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Workspace Stage Area -->
-        <main class="main-workspace">
-            <div class="stage-container">
-                <div id="viewport" class="viewport ratio-16-9">
-                    <div id="characterWrapper" class="character-wrapper">
-                        <!-- Default 2D Vector Character -->
-                        <svg viewBox="-50 -20 450 500" xmlns="http://www.w3.org/2000/svg">
-                            <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-                                <g id="left-leg">
-                                    <path d="M 140 330 L 135 410" fill="none"/>
-                                    <ellipse cx="125" cy="415" rx="18" ry="8" fill="#333" />
-                                </g>
-                                <g id="right-leg">
-                                    <path d="M 210 330 L 215 410" fill="none"/>
-                                    <ellipse cx="225" cy="415" rx="18" ry="8" fill="#333" />
-                                </g>
-                                <path d="M 110 210 L 240 210 L 230 330 L 120 330 Z" fill="#ffffff" />
-                                <rect x="117" y="270" width="115" height="35" fill="#a03c51" stroke="#000" stroke-width="3" />
-                                <g id="left-arm">
-                                    <path d="M 110 215 L 60 270 L 20 250" fill="none" stroke-width="20" stroke="#ffffff" />
-                                    <path d="M 110 215 L 60 270 L 20 250" fill="none" stroke-width="4" stroke="#000000" />
-                                    <path d="M 25 250 C 10 240, 5 260, 15 270 C 5 275, 10 285, 25 275" fill="#fcd7b6" stroke="#000" stroke-width="3"/>
-                                </g>
-                                <g id="right-arm">
-                                    <path d="M 240 215 L 285 270" fill="none" stroke-width="20" stroke="#ffffff" />
-                                    <path d="M 240 215 L 285 270" fill="none" stroke-width="4" stroke="#000000" />
-                                    <circle cx="290" cy="275" r="12" fill="#fcd7b6" stroke="#000" stroke-width="3"/>
-                                </g>
-                                <rect x="155" y="185" width="40" height="30" fill="#fcd7b6" stroke="#000" stroke-width="4" />
-                                <g id="head">
-                                    <path d="M 100 130 C 95 200, 255 200, 250 130 C 255 70, 95 70, 100 130 Z" fill="#fcd7b6" />
-                                    <g id="eyes">
-                                        <ellipse cx="135" cy="120" rx="22" ry="16" fill="#fff" />
-                                        <circle cx="140" cy="120" r="7" fill="#000" />
-                                        <path d="M 110 100 Q 135 90 160 105" fill="none" stroke="#000" stroke-width="4" />
-                                        <ellipse cx="215" cy="120" rx="22" ry="16" fill="#fff" />
-                                        <circle cx="210" cy="120" r="7" fill="#000" />
-                                        <path d="M 190 105 Q 215 90 240 100" fill="none" stroke="#000" stroke-width="4" />
-                                    </g>
-                                    <path d="M 90 120 C 70 80, 90 30, 140 30 C 160 10, 200 10, 220 30 C 260 20, 280 70, 260 120 C 240 100, 240 70, 210 60 C 180 50, 130 60, 90 120 Z" fill="#801818" />
-                                    <ellipse id="mouth" cx="175" cy="165" rx="16" ry="4" fill="#801818" />
-                                </g>
+    <!-- Canvas Workspace Area -->
+    <main class="workspace">
+        <div id="viewport" class="viewport ratio-16-9">
+            <!-- Character Drag Target Layer -->
+            <div id="characterWrapper" class="draggable-element character-wrapper selected" style="transform: translate(100px, 40px) scale(1);">
+                <svg viewBox="-50 -20 450 500" xmlns="http://www.w3.org/2000/svg">
+                    <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                        <g id="left-leg">
+                            <path d="M 140 330 L 135 410" fill="none"/>
+                            <ellipse cx="125" cy="415" rx="18" ry="8" fill="#333" />
+                        </g>
+                        <g id="right-leg">
+                            <path d="M 210 330 L 215 410" fill="none"/>
+                            <ellipse cx="225" cy="415" rx="18" ry="8" fill="#333" />
+                        </g>
+                        <path d="M 110 210 L 240 210 L 230 330 L 120 330 Z" fill="#ffffff" />
+                        <rect x="117" y="270" width="115" height="35" fill="#a03c51" stroke="#000" stroke-width="3" />
+                        <g id="left-arm">
+                            <path d="M 110 215 L 60 270 L 20 250" fill="none" stroke-width="20" stroke="#ffffff" />
+                            <path d="M 110 215 L 60 270 L 20 250" fill="none" stroke-width="4" stroke="#000000" />
+                            <path d="M 25 250 C 10 240, 5 260, 15 270 C 5 275, 10 285, 25 275" fill="#fcd7b6" stroke="#000" stroke-width="3"/>
+                        </g>
+                        <g id="right-arm">
+                            <path d="M 240 215 L 285 270" fill="none" stroke-width="20" stroke="#ffffff" />
+                            <path d="M 240 215 L 285 270" fill="none" stroke-width="4" stroke="#000000" />
+                            <circle cx="290" cy="275" r="12" fill="#fcd7b6" stroke="#000" stroke-width="3"/>
+                        </g>
+                        <rect x="155" y="185" width="40" height="30" fill="#fcd7b6" stroke="#000" stroke-width="4" />
+                        <g id="head">
+                            <path d="M 100 130 C 95 200, 255 200, 250 130 C 255 70, 95 70, 100 130 Z" fill="#fcd7b6" />
+                            <g id="eyes">
+                                <ellipse cx="135" cy="120" rx="22" ry="16" fill="#fff" />
+                                <circle cx="140" cy="120" r="7" fill="#000" />
+                                <path d="M 110 100 Q 135 90 160 105" fill="none" stroke="#000" stroke-width="4" />
+                                <ellipse cx="215" cy="120" rx="22" ry="16" fill="#fff" />
+                                <circle cx="210" cy="120" r="7" fill="#000" />
+                                <path d="M 190 105 Q 215 90 240 100" fill="none" stroke="#000" stroke-width="4" />
                             </g>
-                        </svg>
-                    </div>
-                </div>
+                            <path d="M 90 120 C 70 80, 90 30, 140 30 C 160 10, 200 10, 220 30 C 260 20, 280 70, 260 120 C 240 100, 240 70, 210 60 C 180 50, 130 60, 90 120 Z" fill="#801818" />
+                            <ellipse id="mouth" cx="175" cy="165" rx="16" ry="4" fill="#801818" />
+                        </g>
+                    </g>
+                </svg>
             </div>
+        </div>
+    </main>
 
-            <!-- Video Editing Layers System Panel -->
-            <div class="timeline-panel">
-                <div class="timeline-header">
-                    <span>📚 Layers Stack (Top to Bottom)</span>
-                    <button class="btn-option" onclick="addTextLayer()">+ Add Text Overlay</button>
+    <!-- Bottom Editing Drawer Panel -->
+    <footer class="bottom-panel">
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('voice', event)">🎤 Voice & Sync</button>
+            <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Add Assets & BG</button>
+            <button class="tab-btn" onclick="switchTab('transform', event)">📐 Size & Scale</button>
+            <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Aspect Ratio</button>
+            <button class="tab-btn" onclick="switchTab('layers', event)">📚 Layers Stack</button>
+        </div>
+
+        <!-- Tab 1: Voice -->
+        <div id="tab-voice" class="tab-content active">
+            <p style="font-size:0.8rem; color:#a4b0be; margin-bottom:8px;">Select Pitch Preset:</p>
+            <div class="btn-grid" style="margin-bottom:12px;">
+                <div class="btn-opt active" onclick="setVoice('normal', event)">Normal</div>
+                <div class="btn-opt" onclick="setVoice('kid', event)">Kid</div>
+                <div class="btn-opt" onclick="setVoice('monster', event)">Monster</div>
+            </div>
+            <div class="control-row">
+                <button id="recordBtn" class="btn-record">🎤 Start Recording</button>
+                <button id="playBtn" class="btn-play" disabled>▶️ Sync & Play</button>
+            </div>
+        </div>
+
+        <!-- Tab 2: Assets & Background -->
+        <div id="tab-assets" class="tab-content">
+            <div class="control-row">
+                <label class="file-btn">
+                    ➕ Upload Custom Asset (PNG/SVG)
+                    <input type="file" id="assetUpload" accept="image/*">
+                </label>
+            </div>
+            <div class="control-row">
+                <label class="file-btn">
+                    🖼️ Change Stage Background
+                    <input type="file" id="bgUpload" accept="image/*">
+                </label>
+            </div>
+        </div>
+
+        <!-- Tab 3: Scale (Z-Axis) -->
+        <div id="tab-transform" class="tab-content">
+            <p style="font-size:0.8rem; color:#a4b0be; margin-bottom:8px;">Scale/Size (Z-Axis):</p>
+            <input type="range" id="scaleSlider" min="0.3" max="2.5" step="0.1" value="1" style="width:100%; margin-bottom:10px;">
+            <p style="font-size:0.75rem; color:#a4b0be;">💡 Tip: Canvas par apne finger se touch karke direct position set karein.</p>
+        </div>
+
+        <!-- Tab 4: Aspect Ratio -->
+        <div id="tab-ratio" class="tab-content">
+            <div class="btn-grid">
+                <div class="btn-opt active" onclick="setRatio('16-9', event)">16:9 YouTube</div>
+                <div class="btn-opt" onclick="setRatio('9-16', event)">9:16 Shorts</div>
+                <div class="btn-opt" onclick="setRatio('1-1', event)">1:1 Square</div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Layers Panel -->
+        <div id="tab-layers" class="tab-content">
+            <div id="layerList">
+                <div class="layer-item active">
+                    <span>🎭 Main Character</span>
+                    <span>Active</span>
                 </div>
-                <div class="layer-list" id="layerList">
-                    <div class="layer-item">
-                        <div class="layer-info">
-                            <span>🎭 Character Layer</span>
-                        </div>
-                        <button class="layer-btn">👁️</button>
-                    </div>
-                    <div class="layer-item">
-                        <div class="layer-info">
-                            <span>🖼️ Background Layer</span>
-                        </div>
-                        <button class="layer-btn">👁️</button>
-                    </div>
+                <div class="layer-item">
+                    <span>🖼️ Background</span>
+                    <span>Fixed</span>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </footer>
 
     <script>
         let currentPitch = 1.0;
-        let mediaRecorder;
-        let audioChunks = [];
-        let audioContext;
-        let audioBuffer;
-        let activeSource = null;
-        let animationFrameId = null;
+        let mediaRecorder, audioChunks = [], audioContext, audioBuffer, activeSource, animationFrameId;
+        let selectedElement = document.getElementById('characterWrapper');
 
         const viewport = document.getElementById('viewport');
-        const charWrapper = document.getElementById('characterWrapper');
-        const posX = document.getElementById('posX');
-        const posY = document.getElementById('posY');
-        const posZ = document.getElementById('posZ');
-        const recordBtn = document.getElementById('recordBtn');
-        const playBtn = document.getElementById('playBtn');
+        const scaleSlider = document.getElementById('scaleSlider');
 
-        // 1. Voice Presets
+        // Tab Switching Engine
+        function switchTab(tabId, e) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            e.target.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        }
+
+        // Voice Presets
         function setVoice(type, e) {
-            document.querySelectorAll('.sidebar .control-group:nth-child(1) .btn-option').forEach(b => b.classList.remove('active'));
-            if(e) e.target.classList.add('active');
-
+            document.querySelectorAll('#tab-voice .btn-opt').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
             if(type === 'normal') currentPitch = 1.0;
             if(type === 'kid') currentPitch = 1.6;
             if(type === 'monster') currentPitch = 0.6;
         }
 
-        // 2. Aspect Ratio Controller
+        // Aspect Ratio
         function setRatio(ratio, e) {
-            document.querySelectorAll('.sidebar .control-group:nth-child(3) .btn-option').forEach(b => b.classList.remove('active'));
-            if(e) e.target.classList.add('active');
-
+            document.querySelectorAll('#tab-ratio .btn-opt').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
             viewport.className = `viewport ratio-${ratio}`;
         }
 
-        // 3. Background Upload
+        // Background Upload
         document.getElementById('bgUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                    viewport.style.backgroundImage = `url('${event.target.result}')`;
+                reader.onload = (evt) => {
+                    viewport.style.backgroundImage = `url('${evt.target.result}')`;
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // 4. X, Y, Z Transformation Sync
-        function updateTransform() {
-            const x = posX.value;
-            const y = posY.value;
-            const z = posZ.value;
+        // Add Custom PNG/SVG Asset Layer
+        document.getElementById('assetUpload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const assetDiv = document.createElement('div');
+                    assetDiv.className = 'draggable-element asset-wrapper';
+                    assetDiv.style.transform = `translate(50px, 50px) scale(1)`;
+                    assetDiv.innerHTML = `<img src="${evt.target.result}">`;
+                    
+                    viewport.appendChild(assetDiv);
+                    makeDraggable(assetDiv);
+                    selectElement(assetDiv);
 
-            charWrapper.style.transform = `translate(${x}px, ${y}px) scale(${z})`;
+                    // Add to Layers List
+                    const layerList = document.getElementById('layerList');
+                    const layerItem = document.createElement('div');
+                    layerItem.className = 'layer-item';
+                    layerItem.innerHTML = `<span>📦 Asset Layer</span><span onclick="this.parentElement.remove(); assetDiv.remove();">🗑️</span>`;
+                    layerList.appendChild(layerItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Touch & Drag System (Alight Motion Touch Support)
+        function makeDraggable(element) {
+            let isDragging = false;
+            let startX, startY, currentX = 100, currentY = 40, currentScale = 1;
+
+            function getTransformValues(el) {
+                const transform = el.style.transform;
+                const matchTranslate = transform.match(/translate\(([^px]+)px,\s*([^px]+)px\)/);
+                const matchScale = transform.match(/scale\(([^)]+)\)/);
+                
+                let x = matchTranslate ? parseFloat(matchTranslate[1]) : 0;
+                let y = matchTranslate ? parseFloat(matchTranslate[2]) : 0;
+                let s = matchScale ? parseFloat(matchScale[1]) : 1;
+                return { x, y, s };
+            }
+
+            function onPointerDown(e) {
+                isDragging = true;
+                selectElement(element);
+
+                const coords = getTransformValues(element);
+                currentX = coords.x;
+                currentY = coords.y;
+                currentScale = coords.s;
+
+                startX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
+                startY = (e.touches ? e.touches[0].clientY : e.clientY) - currentY;
+
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+            }
+
+            function onPointerMove(e) {
+                if (!isDragging) return;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                currentX = clientX - startX;
+                currentY = clientY - startY;
+
+                element.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentScale})`;
+            }
+
+            function onPointerUp() {
+                isDragging = false;
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+            }
+
+            element.addEventListener('pointerdown', onPointerDown);
         }
-        updateTransform();
 
-        // Drag Character via Mouse
-        let isDragging = false, startX, startY;
-        charWrapper.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX - parseInt(posX.value);
-            startY = e.clientY - parseInt(posY.value);
+        function selectElement(el) {
+            document.querySelectorAll('.draggable-element').forEach(e => e.classList.remove('selected'));
+            selectedElement = el;
+            selectedElement.classList.add('selected');
+        }
+
+        makeDraggable(document.getElementById('characterWrapper'));
+
+        // Scale Control (Z-Axis)
+        scaleSlider.addEventListener('input', (e) => {
+            if(!selectedElement) return;
+            const transform = selectedElement.style.transform;
+            const matchTranslate = transform.match(/translate\(([^px]+)px,\s*([^px]+)px\)/);
+            let x = matchTranslate ? matchTranslate[1] : 0;
+            let y = matchTranslate ? matchTranslate[2] : 0;
+            
+            selectedElement.style.transform = `translate(${x}px, ${y}px) scale(${e.target.value})`;
         });
 
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            posX.value = e.clientX - startX;
-            posY.value = e.clientY - startY;
-            updateTransform();
-        });
+        // Recording & Animation Sync Engine
+        const recordBtn = document.getElementById('recordBtn');
+        const playBtn = document.getElementById('playBtn');
 
-        window.addEventListener('mouseup', () => isDragging = false);
-
-        // 5. Audio Processing & Animation Engine
         recordBtn.addEventListener('click', async () => {
             if (!mediaRecorder || mediaRecorder.state === 'inactive') {
                 try {
@@ -461,7 +528,6 @@
                     audioChunks = [];
 
                     mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-                    
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
                         const arrayBuffer = await audioBlob.arrayBuffer();
@@ -485,7 +551,6 @@
 
         playBtn.addEventListener('click', () => {
             if (!audioBuffer) return;
-
             if (audioContext.state === 'suspended') audioContext.resume();
             if (activeSource) try { activeSource.stop(); } catch(e){}
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -539,20 +604,6 @@
                 document.getElementById('right-leg').style.transform = 'rotate(0deg)';
             };
         });
-
-        // Add Layer Feature
-        function addTextLayer() {
-            const list = document.getElementById('layerList');
-            const layerDiv = document.createElement('div');
-            layerDiv.className = 'layer-item';
-            layerDiv.innerHTML = `
-                <div class="layer-info">
-                    <span>📝 Text Overlay</span>
-                </div>
-                <button class="layer-btn" onclick="this.parentElement.remove()">🗑️</button>
-            `;
-            list.insertBefore(layerDiv, list.firstChild);
-        }
     </script>
 </body>
 </html>
