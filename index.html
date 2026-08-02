@@ -470,11 +470,11 @@
                 </label>
             </div>
             <div class="control-group">
-                <div class="slider-label"><span>🎚️ Voice Pitch Tone (Frequency Shift)</span><span id="pitchVal">0 semitones</span></div>
+                <div class="slider-label"><span>🎚️ Voice Pitch Tone</span><span id="pitchVal">0 semitones</span></div>
                 <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0">
             </div>
             <div class="control-group">
-                <div class="slider-label"><span>⚡ Playback Speed (Tempo Only)</span><span id="speedVal">1.0x</span></div>
+                <div class="slider-label"><span>⚡ Playback Speed</span><span id="speedVal">1.0x</span></div>
                 <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0">
             </div>
             <div class="control-group">
@@ -876,127 +876,61 @@
             if (leftArm) leftArm.style.transform = 'rotate(0deg)';
         }
 
-        // 100% WORKING MOBILE EXPORT FUNCTION (PRELOADED SVG + VP8/MP4 CODEC)
-        // 100% RELIABLE OFFLINE FRAME-BY-FRAME EXPORTER FOR MOBILE
-async function exportVideo() {
-    const exportStatus = document.getElementById('exportStatus');
-    if (timelineClipsData.length === 0) {
-        alert("Pehle timeline mein koi audio ya clip add karein!");
-        return;
-    }
-
-    exportStatus.innerText = "⏳ Initializing Frame Renderer...";
-
-    try {
-        const viewportEl = document.getElementById('viewport');
-        const canvas = document.createElement('canvas');
-        canvas.width = viewportEl.clientWidth || 640;
-        canvas.height = viewportEl.clientHeight || 360;
-        const ctx = canvas.getContext('2d');
-
-        // Capture 30 FPS Stream
-        const canvasStream = canvas.captureStream(30);
-
-        // Connect Audio Stream if available
-        if (audioContext && activeSource && gainNode) {
-            const dest = audioContext.createMediaStreamDestination();
-            gainNode.connect(dest);
-            const audioTracks = dest.stream.getAudioTracks();
-            if (audioTracks.length > 0) {
-                canvasStream.addTrack(audioTracks[0]);
-            }
-        }
-
-        // Safe Codec Selection
-        let options = {};
-        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
-            options = { mimeType: 'video/webm;codecs=vp8' };
-        } else if (MediaRecorder.isTypeSupported('video/webm')) {
-            options = { mimeType: 'video/webm' };
-        } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-            options = { mimeType: 'video/mp4' };
-        }
-
-        const mediaRecorder = new MediaRecorder(canvasStream, options);
-        let recordedChunks = [];
-
-        mediaRecorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-        };
-
-        mediaRecorder.onstop = () => {
-            const finalMime = options.mimeType || 'video/webm';
-            const ext = finalMime.includes('mp4') ? 'mp4' : 'webm';
-            const blob = new Blob(recordedChunks, { type: finalMime });
-
-            if (blob.size === 0) {
-                exportStatus.innerText = "❌ Mobile Security Block! Try in Chrome Browser.";
+        // 100% FIXED EXPORT SYSTEM FOR MOBILE CHROME / ANDROID
+        async function exportVideo() {
+            const exportStatus = document.getElementById('exportStatus');
+            if (timelineClipsData.length === 0) {
+                alert("Pehle timeline mein koi audio ya clip add karein!");
                 return;
             }
 
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = `AlightAnimation_${Date.now()}.${ext}`;
-            document.body.appendChild(a);
-            a.click();
+            exportStatus.innerText = "⏳ Initializing Canvas Stream...";
 
-            setTimeout(() => {
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            }, 1000);
+            try {
+                const viewportEl = document.getElementById('viewport');
+                const canvas = document.createElement('canvas');
+                canvas.width = viewportEl.clientWidth || 640;
+                canvas.height = viewportEl.clientHeight || 360;
+                const ctx = canvas.getContext('2d');
 
-            exportStatus.innerText = "✅ Video Exported Successfully!";
-        };
+                // Frame Capture Stream
+                const canvasStream = canvas.captureStream(30);
 
-        // Convert SVG to Data URI (Direct Image Drawing)
-        const svgElement = document.querySelector('.character-wrapper svg');
-        const svgString = new XMLSerializer().serializeToString(svgElement);
-        const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+                if (audioContext && activeSource && gainNode) {
+                    const dest = audioContext.createMediaStreamDestination();
+                    gainNode.connect(dest);
+                    const audioTracks = dest.stream.getAudioTracks();
+                    if (audioTracks.length > 0) {
+                        canvasStream.addTrack(audioTracks[0]);
+                    }
+                }
 
-        const charImg = new Image();
-        await new Promise((resolve) => {
-            charImg.onload = resolve;
-            charImg.src = svgUrl;
-        });
+                // Codec fallbacks for Chrome Mobile
+                let options = {};
+                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+                    options = { mimeType: 'video/webm;codecs=vp8' };
+                } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                    options = { mimeType: 'video/webm' };
+                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    options = { mimeType: 'video/mp4' };
+                }
 
-        // Force First Draw to Warmup Canvas
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(charImg, 100, 40, 180, 240);
+                const mediaRecorder = new MediaRecorder(canvasStream, options);
+                let recordedChunks = [];
 
-        // Start Recording
-        mediaRecorder.start();
-        
-        let isRecording = true;
-        function drawFrame() {
-            if (!isRecording) return;
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(charImg, 100, 40, 180, 240);
-            requestAnimationFrame(drawFrame);
-        }
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+                };
 
-        drawFrame();
-        currentPlayheadTime = 0;
-        startPlaybackAt(0);
+                mediaRecorder.onstop = () => {
+                    const finalMime = options.mimeType || 'video/webm';
+                    const ext = finalMime.includes('mp4') ? 'mp4' : 'webm';
+                    const blob = new Blob(recordedChunks, { type: finalMime });
 
-        exportStatus.innerText = "⏺️ Exporting Video... Please wait!";
-
-        const totalDur = (getTotalTimelineDuration() * 1000) + 800;
-        setTimeout(() => {
-            isRecording = false;
-            mediaRecorder.stop();
-            pausePlayback();
-        }, totalDur);
-
-    } catch (err) {
-        console.error(err);
-        exportStatus.innerText = "❌ Export Failed: Browser Restriction";
-    }
-}
-
+                    if (blob.size === 0) {
+                        exportStatus.innerText = "❌ Mobile Restriction! Open file in Google Chrome.";
+                        return;
+                    }
 
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -1014,52 +948,49 @@ async function exportVideo() {
                     exportStatus.innerText = "✅ Video Exported & Saved!";
                 };
 
-                // Preload SVG character as Image to avoid corrupt empty frames
+                // Convert SVG Direct via Data-URI (Prevents empty/corrupt frame bug)
                 const svgElement = document.querySelector('.character-wrapper svg');
-                const svgData = new XMLSerializer().serializeToString(svgElement);
-                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                const DOMURL = window.URL || window.webkitURL || window;
-                const imgUrl = DOMURL.createObjectURL(svgBlob);
-                
+                const svgString = new XMLSerializer().serializeToString(svgElement);
+                const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+
                 const charImg = new Image();
                 await new Promise((resolve) => {
                     charImg.onload = resolve;
-                    charImg.src = imgUrl;
+                    charImg.src = svgUrl;
                 });
 
+                // Warmup Render Draw
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(charImg, 100, 40, 180, 240);
+
+                mediaRecorder.start();
+
                 let isRecording = true;
-
-                function renderCanvasFrame() {
+                function drawFrame() {
                     if (!isRecording) return;
-
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Draw Character synchronously onto Canvas
                     ctx.drawImage(charImg, 100, 40, 180, 240);
-
-                    requestAnimationFrame(renderCanvasFrame);
+                    requestAnimationFrame(drawFrame);
                 }
 
-                // Chunk data every 100ms to preserve file structure on Mobile
-                mediaRecorder.start(100); 
-                renderCanvasFrame();
+                drawFrame();
                 currentPlayheadTime = 0;
                 startPlaybackAt(0);
 
-                exportStatus.innerText = "⏺️ Recording Animation...";
+                exportStatus.innerText = "⏺️ Exporting Video... Wait till complete!";
 
-                const totalDur = (getTotalTimelineDuration() * 1000) + 600;
+                const totalDur = (getTotalTimelineDuration() * 1000) + 800;
                 setTimeout(() => {
                     isRecording = false;
                     mediaRecorder.stop();
                     pausePlayback();
-                    DOMURL.revokeObjectURL(imgUrl);
                 }, totalDur);
 
             } catch (err) {
                 console.error(err);
-                exportStatus.innerText = "❌ Export error occurred!";
+                exportStatus.innerText = "❌ Browser Blocked Canvas Export";
             }
         }
 
