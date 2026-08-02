@@ -23,7 +23,6 @@
             overflow: hidden;
         }
 
-        /* Top Navigation Header */
         .app-header {
             height: 50px;
             background: #181920;
@@ -44,7 +43,7 @@
             gap: 8px;
         }
 
-        /* Workspace Canvas Area with 3D Perspective */
+        /* 3D Perspective Workspace Stage */
         .workspace {
             flex: 1;
             display: flex;
@@ -54,7 +53,6 @@
             position: relative;
             overflow: hidden;
             padding: 10px;
-            perspective: 800px; /* Alight Motion 3D Camera Perspective */
         }
 
         .viewport {
@@ -66,15 +64,15 @@
             border-radius: 6px;
             overflow: hidden;
             touch-action: none;
+            perspective: 600px;
+            perspective-origin: 50% 50%;
             transform-style: preserve-3d;
         }
 
-        /* Aspect Ratios */
         .ratio-16-9 { width: 100%; max-width: 640px; aspect-ratio: 16/9; }
         .ratio-9-16 { height: 100%; max-height: 480px; aspect-ratio: 9/16; }
         .ratio-1-1  { width: 100%; max-width: 380px; aspect-ratio: 1/1; }
 
-        /* Draggable 3D Elements */
         .draggable-element {
             position: absolute;
             top: 0;
@@ -108,7 +106,6 @@
             pointer-events: none;
         }
 
-        /* Bottom Controls Drawer */
         .bottom-panel {
             height: 280px;
             background: #181920;
@@ -154,7 +151,6 @@
             display: block;
         }
 
-        /* UI Slider Groups & Controls */
         .control-group {
             margin-bottom: 8px;
         }
@@ -235,6 +231,11 @@
             width: 100%;
         }
 
+        .btn-play.paused {
+            background: #ffa500;
+            color: #fff;
+        }
+
         .btn-record.recording {
             animation: pulse 1s infinite;
             background: #ff6b81;
@@ -257,7 +258,6 @@
             font-size: 0.85rem;
         }
 
-        /* SVG Joints setup */
         #mouth { transform-origin: center center; transform-box: fill-box; }
         #left-arm { transform-origin: top right; transform-box: fill-box; }
         #right-arm { transform-origin: top left; transform-box: fill-box; }
@@ -326,7 +326,7 @@
             <button class="tab-btn" onclick="switchTab('layers', event)">📚 Layers Stack</button>
         </div>
 
-        <!-- Tab 1: Transform 3D (X, Y, Z Axis + Scale) -->
+        <!-- 3D Transform Tab -->
         <div id="tab-transform" class="tab-content active">
             <div class="control-group">
                 <div class="slider-label"><span>X Axis (Horizontal)</span><span id="xVal">100px</span></div>
@@ -339,8 +339,8 @@
             </div>
 
             <div class="control-group">
-                <div class="slider-label"><span>Z Axis (3D Depth: Forward / Backward)</span><span id="zVal">0px</span></div>
-                <input type="range" id="posZSlider" min="-400" max="400" value="0">
+                <div class="slider-label"><span>Z Axis (Depth - Near/Far)</span><span id="zVal">0px</span></div>
+                <input type="range" id="posZSlider" min="-300" max="350" value="0">
             </div>
 
             <div class="control-group">
@@ -349,7 +349,7 @@
             </div>
         </div>
 
-        <!-- Tab 2: Voice FX -->
+        <!-- Voice & Playback Controls Tab -->
         <div id="tab-voice" class="tab-content">
             <div class="control-group">
                 <div class="slider-label"><span>Pitch Control</span><span id="pitchVal">1.0x</span></div>
@@ -368,17 +368,16 @@
 
             <div class="control-row">
                 <label style="font-size:0.8rem; color:#a4b0be; display:flex; align-items:center; gap:8px;">
-                    <input type="checkbox" id="telephonicFx"> 📞 Walkie-Talkie / Robot Filter FX
+                    <input type="checkbox" id="telephonicFx"> 📞 Walkie-Talkie Filter FX
                 </label>
             </div>
 
             <div class="control-row">
                 <button id="recordBtn" class="btn-record">🎤 Record Voice</button>
-                <button id="playBtn" class="btn-play" disabled>▶️ Sync & Play Voice</button>
+                <button id="playBtn" class="btn-play" disabled>▶️ Play</button>
             </div>
         </div>
 
-        <!-- Tab 3: Assets & BG -->
         <div id="tab-assets" class="tab-content">
             <div class="control-row">
                 <label class="file-btn">
@@ -394,7 +393,6 @@
             </div>
         </div>
 
-        <!-- Tab 4: Aspect Ratio -->
         <div id="tab-ratio" class="tab-content">
             <div class="btn-grid">
                 <div class="btn-opt active" onclick="setRatio('16-9', event)">16:9 YouTube</div>
@@ -403,7 +401,6 @@
             </div>
         </div>
 
-        <!-- Tab 5: Layers Stack -->
         <div id="tab-layers" class="tab-content">
             <div id="layerList">
                 <div class="layer-item active">
@@ -416,6 +413,12 @@
 
     <script>
         let audioContext, audioBuffer, activeSource, animationFrameId;
+        let isPlaying = false;
+        let isPaused = false;
+        let pauseOffset = 0;
+        let startTime = 0;
+        let analyser, dataArray;
+
         let selectedElement = document.getElementById('characterWrapper');
 
         const viewport = document.getElementById('viewport');
@@ -429,7 +432,6 @@
         const volSlider = document.getElementById('volSlider');
         const telephonicFx = document.getElementById('telephonicFx');
 
-        // Tab Switching Engine
         function switchTab(tabId, e) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -437,19 +439,16 @@
             document.getElementById(`tab-${tabId}`).classList.add('active');
         }
 
-        // Voice Controls Displays
         pitchSlider.oninput = (e) => document.getElementById('pitchVal').innerText = `${e.target.value}x`;
         speedSlider.oninput = (e) => document.getElementById('speedVal').innerText = `${e.target.value}x`;
         volSlider.oninput = (e) => document.getElementById('volVal').innerText = `${Math.round(e.target.value * 100)}%`;
 
-        // Aspect Ratio Switcher
         function setRatio(ratio, e) {
             document.querySelectorAll('#tab-ratio .btn-opt').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             viewport.className = `viewport ratio-${ratio}`;
         }
 
-        // Background Upload
         document.getElementById('bgUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -461,7 +460,6 @@
             }
         });
 
-        // Add Custom PNG/SVG Asset
         document.getElementById('assetUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -486,7 +484,7 @@
             }
         });
 
-        // Parse 3D Transform String
+        // 3D Matrix & Transform Handler
         function getTransformValues(el) {
             const transform = el.style.transform;
             const match3D = transform.match(/translate3d\(([^px]+)px,\s*([^px]+)px,\s*([^px]+)px\)/);
@@ -499,7 +497,6 @@
             return { x, y, z, s };
         }
 
-        // Sync 3D Transform Sliders with Selected Element
         function updateTransformSliders(x, y, z, s) {
             posXSlider.value = Math.round(x);
             posYSlider.value = Math.round(y);
@@ -519,6 +516,7 @@
             const z = posZSlider.value;
             const s = scaleSlider.value;
 
+            // Direct 3D Matrix transform string
             selectedElement.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${s})`;
             updateTransformSliders(x, y, z, s);
         }
@@ -528,7 +526,6 @@
         posZSlider.oninput = applyTransformFromSliders;
         scaleSlider.oninput = applyTransformFromSliders;
 
-        // Touch & Drag 3D System
         function makeDraggable(element) {
             let isDragging = false;
             let startX, startY, currentX = 100, currentY = 40, currentZ = 0, currentScale = 1;
@@ -582,7 +579,7 @@
 
         makeDraggable(document.getElementById('characterWrapper'));
 
-        // Audio Recording & Advanced DSP Processing
+        // Recording Controls
         let mediaRecorder, audioChunks = [];
         const recordBtn = document.getElementById('recordBtn');
         const playBtn = document.getElementById('playBtn');
@@ -601,6 +598,9 @@
                         audioContext = new (window.AudioContext || window.webkitAudioContext)();
                         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                         playBtn.disabled = false;
+                        pauseOffset = 0;
+                        isPlaying = false;
+                        isPaused = false;
                     };
 
                     mediaRecorder.start();
@@ -616,9 +616,34 @@
             }
         });
 
+        // Advanced Play/Pause Control Logic
         playBtn.addEventListener('click', () => {
             if (!audioBuffer) return;
-            if (audioContext.state === 'suspended') audioContext.resume();
+
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            if (isPlaying && !isPaused) {
+                // Pause Action
+                if (activeSource) {
+                    activeSource.stop();
+                    pauseOffset += audioContext.currentTime - startTime;
+                }
+                isPaused = true;
+                isPlaying = false;
+                playBtn.innerText = '▶️ Resume';
+                playBtn.classList.add('paused');
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                resetPose();
+                return;
+            }
+
+            // Play / Resume Action
+            startPlayback();
+        });
+
+        function startPlayback() {
             if (activeSource) try { activeSource.stop(); } catch(e){}
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
@@ -644,51 +669,73 @@
 
             lastNode.connect(gainNode);
 
-            const analyser = audioContext.createAnalyser();
+            analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
             analyser.smoothingTimeConstant = 0.5;
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
 
             gainNode.connect(analyser);
             analyser.connect(audioContext.destination);
 
-            source.start(0);
-
-            function animate() {
-                const mouth = document.getElementById('mouth');
-                const leftArm = document.getElementById('left-arm');
-                const rightArm = document.getElementById('right-arm');
-                const leftLeg = document.getElementById('left-leg');
-                const rightLeg = document.getElementById('right-leg');
-
-                analyser.getByteFrequencyData(dataArray);
-                let sum = dataArray.reduce((a, b) => a + b, 0);
-                let average = sum / dataArray.length;
-
-                if (mouth) mouth.style.transform = `scaleY(${Math.min(1 + average / 20, 4.5)})`;
-                if (leftArm && rightArm) {
-                    leftArm.style.transform = `rotate(${average / 6}deg)`;
-                    rightArm.style.transform = `rotate(-${average / 6}deg)`;
-                }
-                if (leftLeg && rightLeg) {
-                    leftLeg.style.transform = `rotate(-${average / 15}deg)`;
-                    rightLeg.style.transform = `rotate(${average / 15}deg)`;
-                }
-
-                animationFrameId = requestAnimationFrame(animate);
+            startTime = audioContext.currentTime;
+            
+            if (pauseOffset >= audioBuffer.duration) {
+                pauseOffset = 0;
             }
+
+            source.start(0, pauseOffset);
+            isPlaying = true;
+            isPaused = false;
+            playBtn.innerText = '⏸️ Pause';
+            playBtn.classList.remove('paused');
 
             animate();
 
             source.onended = () => {
-                if (animationFrameId) cancelAnimationFrame(animationFrameId);
-                document.getElementById('mouth').style.transform = 'scaleY(1)';
-                document.getElementById('left-arm').style.transform = 'rotate(0deg)';
-                document.getElementById('right-arm').style.transform = 'rotate(0deg)';
-                document.getElementById('left-leg').style.transform = 'rotate(0deg)';
-                document.getElementById('right-leg').style.transform = 'rotate(0deg)';
+                if (!isPaused) {
+                    isPlaying = false;
+                    pauseOffset = 0;
+                    playBtn.innerText = '▶️ Play';
+                    playBtn.classList.remove('paused');
+                    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                    resetPose();
+                }
             };
-        });
+        }
+
+        function animate() {
+            if (!isPlaying) return;
+
+            const mouth = document.getElementById('mouth');
+            const leftArm = document.getElementById('left-arm');
+            const rightArm = document.getElementById('right-arm');
+            const leftLeg = document.getElementById('left-leg');
+            const rightLeg = document.getElementById('right-leg');
+
+            analyser.getByteFrequencyData(dataArray);
+            let sum = dataArray.reduce((a, b) => a + b, 0);
+            let average = sum / dataArray.length;
+
+            if (mouth) mouth.style.transform = `scaleY(${Math.min(1 + average / 20, 4.5)})`;
+            if (leftArm && rightArm) {
+                leftArm.style.transform = `rotate(${average / 6}deg)`;
+                rightArm.style.transform = `rotate(-${average / 6}deg)`;
+            }
+            if (leftLeg && rightLeg) {
+                leftLeg.style.transform = `rotate(-${average / 15}deg)`;
+                rightLeg.style.transform = `rotate(${average / 15}deg)`;
+            }
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function resetPose() {
+            document.getElementById('mouth').style.transform = 'scaleY(1)';
+            document.getElementById('left-arm').style.transform = 'rotate(0deg)';
+            document.getElementById('right-arm').style.transform = 'rotate(0deg)';
+            document.getElementById('left-leg').style.transform = 'rotate(0deg)';
+            document.getElementById('right-leg').style.transform = 'rotate(0deg)';
+        }
     </script>
 </body>
 </html>
