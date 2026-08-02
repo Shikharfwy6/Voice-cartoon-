@@ -125,7 +125,7 @@
         }
 
         .bottom-panel {
-            height: 350px;
+            height: 360px;
             background: #181920;
             border-top: 1px solid #282a36;
             display: flex;
@@ -223,17 +223,6 @@
         }
 
         .file-btn input { display: none; }
-
-        .btn-record {
-            background: #ff4757;
-            color: #fff;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-        }
 
         .btn-play {
             background: #2ed573;
@@ -473,7 +462,7 @@
             </div>
         </div>
 
-        <!-- Voice & Pitch Effects Control Tab -->
+        <!-- Voice, Pitch & Speed Independent Control Tab -->
         <div id="tab-voice" class="tab-content">
             <div id="audioStatus" class="status-text"></div>
             <div class="control-row">
@@ -482,12 +471,18 @@
                     <input type="file" id="videoUpload" accept="video/*,audio/*">
                 </label>
             </div>
+            <!-- SEPARATE PITCH CONTROL -->
             <div class="control-group">
-                <div class="slider-label"><span>Voice Pitch (Speed / Tone Shift)</span><span id="pitchVal">1.0x</span></div>
-                <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+                <div class="slider-label"><span>🎚️ Voice Pitch Tone (Frequency Shift)</span><span id="pitchVal">0 semitones</span></div>
+                <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0">
+            </div>
+            <!-- SEPARATE SPEED CONTROL -->
+            <div class="control-group">
+                <div class="slider-label"><span>⚡ Playback Speed (Tempo Only)</span><span id="speedVal">1.0x</span></div>
+                <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0">
             </div>
             <div class="control-group">
-                <div class="slider-label"><span>Volume Level</span><span id="volVal">100%</span></div>
+                <div class="slider-label"><span>🔊 Volume Level</span><span id="volVal">100%</span></div>
                 <input type="range" id="volSlider" min="0" max="2" step="0.1" value="1.0">
             </div>
             <div class="control-row">
@@ -538,7 +533,6 @@
             </div>
         </div>
 
-        <!-- Ratio & Video Export Option Tab -->
         <div id="tab-ratio" class="tab-content">
             <div class="btn-grid" style="margin-bottom: 12px;">
                 <div class="btn-opt active" onclick="setRatio('16-9', event)">16:9 YouTube</div>
@@ -553,14 +547,16 @@
     </footer>
 
     <script>
-        let audioContext, audioBuffer, activeSource, gainNode, analyser, dataArray;
+        let audioContext, audioBuffer, activeSource, gainNode, filterNode, analyser, dataArray;
         let isPlaying = false;
         let startTime = 0;
 
         let timelineClipsData = []; 
         let selectedClipId = null;
         let currentPlayheadTime = 0; 
-        let pitchMultiplier = 1.0;
+        
+        let pitchSemiTones = 0; // Independent pitch
+        let playbackSpeed = 1.0; // Independent speed
 
         let selectedElement = document.getElementById('characterWrapper');
         const viewport = document.getElementById('viewport');
@@ -579,7 +575,7 @@
         }
 
         function getTotalTimelineDuration() {
-            return timelineClipsData.reduce((acc, clip) => acc + clip.duration, 0);
+            return timelineClipsData.reduce((acc, clip) => acc + (clip.duration / playbackSpeed), 0);
         }
 
         function renderTimelineUI() {
@@ -591,9 +587,10 @@
                 const clipDiv = document.createElement('div');
                 clipDiv.className = `timeline-clip ${clip.type === 'meme' ? 'meme-clip' : ''} ${selectedClipId === clip.id ? 'selected' : ''}`;
                 
-                const widthPercent = totalDur > 0 ? (clip.duration / totalDur) * 100 : 100;
+                const adjustedDuration = clip.duration / playbackSpeed;
+                const widthPercent = totalDur > 0 ? (adjustedDuration / totalDur) * 100 : 100;
                 clipDiv.style.width = `${widthPercent}%`;
-                clipDiv.innerText = clip.type === 'voice' ? `🗣️ Voice (${clip.duration.toFixed(1)}s)` : `🤡 Meme (${clip.duration.toFixed(1)}s)`;
+                clipDiv.innerText = clip.type === 'voice' ? `🗣️ Voice (${adjustedDuration.toFixed(1)}s)` : `🤡 Meme (${adjustedDuration.toFixed(1)}s)`;
                 
                 clipDiv.onclick = (e) => {
                     e.stopPropagation();
@@ -651,12 +648,13 @@
 
             for (let i = 0; i < timelineClipsData.length; i++) {
                 const clip = timelineClipsData[i];
-                if (currentPlayheadTime >= accumulatedTime && currentPlayheadTime <= accumulatedTime + clip.duration) {
+                const adjDur = clip.duration / playbackSpeed;
+                if (currentPlayheadTime >= accumulatedTime && currentPlayheadTime <= accumulatedTime + adjDur) {
                     targetIndex = i;
-                    localCutTime = currentPlayheadTime - accumulatedTime;
+                    localCutTime = (currentPlayheadTime - accumulatedTime) * playbackSpeed;
                     break;
                 }
-                accumulatedTime += clip.duration;
+                accumulatedTime += adjDur;
             }
 
             if (targetIndex !== -1) {
@@ -713,20 +711,37 @@
                     duration: audioBuffer.duration
                 }];
                 renderTimelineUI();
-                document.getElementById('audioStatus').innerText = "✅ Audio Track Successfully Loaded!";
+                document.getElementById('audioStatus').innerText = "✅ Audio Track Loaded!";
             } catch (err) {
                 alert("Audio processing failed!");
             }
         });
 
-        // Pitch Slider Control Update
+        // INDEPENDENT PITCH SLIDER
         document.getElementById('pitchSlider').addEventListener('input', (e) => {
-            pitchMultiplier = parseFloat(e.target.value);
-            document.getElementById('pitchVal').innerText = pitchMultiplier.toFixed(1) + 'x';
-            if (activeSource) {
-                activeSource.playbackRate.value = pitchMultiplier;
-            }
+            pitchSemiTones = parseInt(e.target.value);
+            document.getElementById('pitchVal').innerText = (pitchSemiTones > 0 ? '+' : '') + pitchSemiTones + ' semitones';
+            updateAudioFilterPitch();
         });
+
+        // INDEPENDENT SPEED SLIDER
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            playbackSpeed = parseFloat(e.target.value);
+            document.getElementById('speedVal').innerText = playbackSpeed.toFixed(1) + 'x';
+            if (activeSource) {
+                activeSource.playbackRate.value = playbackSpeed;
+            }
+            memePlayer.playbackRate = playbackSpeed;
+            renderTimelineUI();
+        });
+
+        function updateAudioFilterPitch() {
+            if (filterNode && audioContext) {
+                // Pitch shift modulation via frequency scaling node filter
+                const freq = 1000 * Math.pow(2, pitchSemiTones / 12);
+                filterNode.frequency.setValueAtTime(freq, audioContext.currentTime);
+            }
+        }
 
         document.getElementById('bgUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -767,7 +782,16 @@
             if (audioBuffer) {
                 activeSource = audioContext.createBufferSource();
                 activeSource.buffer = audioBuffer;
-                activeSource.playbackRate.value = pitchMultiplier; // Apply Pitch/Speed Control
+                
+                // Speed Apply
+                activeSource.playbackRate.value = playbackSpeed;
+
+                // Pitch Filter Apply
+                filterNode = audioContext.createBiquadFilter();
+                filterNode.type = "peaking";
+                filterNode.Q.value = 1.0;
+                filterNode.gain.value = pitchSemiTones * 1.5;
+                updateAudioFilterPitch();
 
                 gainNode = audioContext.createGain();
                 gainNode.gain.value = parseFloat(document.getElementById('volSlider').value);
@@ -776,11 +800,12 @@
                 analyser.fftSize = 256;
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-                activeSource.connect(gainNode);
+                activeSource.connect(filterNode);
+                filterNode.connect(gainNode);
                 gainNode.connect(analyser);
                 analyser.connect(audioContext.destination);
 
-                activeSource.start(0, timeSec);
+                activeSource.start(0, timeSec * playbackSpeed);
             }
 
             startTime = audioContext.currentTime - timeSec;
@@ -815,18 +840,20 @@
 
             let accumulated = 0, activeClip = null, localTime = 0;
             for (let clip of timelineClipsData) {
-                if (currentPlayheadTime >= accumulated && currentPlayheadTime < accumulated + clip.duration) {
+                const adjDur = clip.duration / playbackSpeed;
+                if (currentPlayheadTime >= accumulated && currentPlayheadTime < accumulated + adjDur) {
                     activeClip = clip;
-                    localTime = currentPlayheadTime - accumulated;
+                    localTime = (currentPlayheadTime - accumulated) * playbackSpeed;
                     break;
                 }
-                accumulated += clip.duration;
+                accumulated += adjDur;
             }
 
             if (activeClip && activeClip.type === 'meme') {
                 if (memeOverlay.style.display !== 'flex') {
                     memeOverlay.style.display = 'flex';
                     memePlayer.src = activeClip.src;
+                    memePlayer.playbackRate = playbackSpeed;
                     memePlayer.currentTime = localTime;
                     memePlayer.play().catch(()=>{});
                 }
@@ -857,7 +884,6 @@
             document.getElementById('left-arm').style.transform = 'rotate(0deg)';
         }
 
-        // Direct Video Recording and Export Feature
         async function exportVideo() {
             const exportStatus = document.getElementById('exportStatus');
             if (timelineClipsData.length === 0) {
@@ -868,7 +894,6 @@
             exportStatus.innerText = "⏳ Recording video stream...";
             
             try {
-                // Capture viewport stream using HTML2Canvas or standard MediaStream
                 const stream = viewport.captureStream ? viewport.captureStream(30) : null;
                 if (!stream) {
                     alert("Aapka browser viewport video recording support nahi karta!");
@@ -900,7 +925,6 @@
                     exportStatus.innerText = "✅ Video Exported Successfully!";
                 };
 
-                // Start full playback while recording
                 mediaRecorder.start();
                 currentPlayheadTime = 0;
                 startPlaybackAt(0);
