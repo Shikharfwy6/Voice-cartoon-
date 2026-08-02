@@ -99,6 +99,12 @@
             overflow: visible;
         }
 
+        .asset-wrapper img {
+            width: 100px;
+            height: auto;
+            pointer-events: none;
+        }
+
         /* Meme Overlay Screen */
         .meme-overlay {
             position: absolute;
@@ -240,8 +246,6 @@
             width: 100%;
             cursor: pointer;
         }
-
-        .btn-play.paused { background: #ffa500; color: #fff; }
 
         .status-text {
             font-size: 0.75rem;
@@ -387,7 +391,7 @@
         <div id="viewport" class="viewport ratio-16-9">
             <!-- Meme Video Stage Overlay -->
             <div id="memeOverlay" class="meme-overlay">
-                <video id="memePlayer" playsinline muted></video>
+                <video id="memePlayer" playsinline></video>
             </div>
 
             <!-- Main Character -->
@@ -480,7 +484,6 @@
             </div>
         </div>
 
-        <!-- Manual Interactive Timeline Tab -->
         <div id="tab-timeline" class="tab-content">
             <div class="timeline-container">
                 <div class="timeline-tools">
@@ -509,7 +512,14 @@
             </div>
         </div>
 
+        <!-- Restored Assets & Stage Background Options -->
         <div id="tab-assets" class="tab-content">
+            <div class="control-row">
+                <label class="file-btn">
+                    ➕ Upload Custom Asset Image
+                    <input type="file" id="assetUpload" accept="image/*">
+                </label>
+            </div>
             <div class="control-row">
                 <label class="file-btn">
                     🖼️ Change Stage Background
@@ -528,15 +538,13 @@
     </footer>
 
     <script>
-        let audioContext, audioBuffer, activeSource, animationFrameId;
-        let isPlaying = false, isPaused = false;
-        let pauseOffset = 0, startTime = 0;
-        let analyser, dataArray;
+        let audioContext, audioBuffer, activeSource, gainNode, analyser, dataArray;
+        let isPlaying = false;
+        let startTime = 0;
 
-        // Sequence State Management
         let timelineClipsData = []; 
         let selectedClipId = null;
-        let currentPlayheadTime = 0; // Current time position in timeline (in seconds)
+        let currentPlayheadTime = 0; 
 
         let selectedElement = document.getElementById('characterWrapper');
         const viewport = document.getElementById('viewport');
@@ -558,7 +566,6 @@
             return timelineClipsData.reduce((acc, clip) => acc + clip.duration, 0);
         }
 
-        // Render Dynamic Track Clips
         function renderTimelineUI() {
             const container = document.getElementById('timelineClips');
             container.innerHTML = '';
@@ -592,7 +599,7 @@
             playhead.style.left = `${Math.min(percent, 100)}%`;
         }
 
-        // Manual Drag/Click Control for Finger Seeking
+        // Finger Drag Seeking
         function handleTimelineSeek(e) {
             const rect = trackWrapper.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -603,7 +610,6 @@
             if (totalDur <= 0) return;
 
             currentPlayheadTime = (clickX / rect.width) * totalDur;
-            pauseOffset = currentPlayheadTime;
             
             if (isPlaying) {
                 startPlaybackAt(currentPlayheadTime);
@@ -630,7 +636,7 @@
             window.removeEventListener('pointerup', onPlayheadUp);
         }
 
-        // Cut Clip exactly at Playhead Position
+        // Split Clip
         function splitClipAtPlayhead() {
             if (timelineClipsData.length === 0) return;
 
@@ -650,10 +656,7 @@
 
             if (targetIndex !== -1) {
                 const clip = timelineClipsData[targetIndex];
-                if (localCutTime <= 0.2 || (clip.duration - localCutTime) <= 0.2) {
-                    alert("Playhead ko clip ke andar position karein split karne ke liye!");
-                    return;
-                }
+                if (localCutTime <= 0.2 || (clip.duration - localCutTime) <= 0.2) return;
 
                 const firstHalf = { ...clip, id: clip.type + '_' + Date.now() + '_1', duration: localCutTime };
                 const secondHalf = { ...clip, id: clip.type + '_' + Date.now() + '_2', duration: clip.duration - localCutTime };
@@ -663,7 +666,7 @@
             }
         }
 
-        // Add Meme Video File
+        // Add Meme
         document.getElementById('memeUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -681,7 +684,6 @@
                 });
                 renderTimelineUI();
                 playBtn.disabled = false;
-                alert("🤡 Meme Added! Playhead slider se ise adjust kar sakte hain.");
             };
         });
 
@@ -692,15 +694,16 @@
             renderTimelineUI();
         }
 
-        // Voice Upload Handler
+        // FIX 1: Voice Video Upload & Audio Context Output Connection
         document.getElementById('videoUpload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            document.getElementById('audioStatus').innerText = "⌛ Extracting voice...";
+            document.getElementById('audioStatus').innerText = "⌛ Extracting voice audio...";
             try {
                 const fileArrayBuffer = await file.arrayBuffer();
                 if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
                 audioBuffer = await audioContext.decodeAudioData(fileArrayBuffer);
                 
                 playBtn.disabled = false;
@@ -710,13 +713,48 @@
                     duration: audioBuffer.duration
                 }];
                 renderTimelineUI();
-                document.getElementById('audioStatus').innerText = "✅ Voice Track Ready!";
+                document.getElementById('audioStatus').innerText = "✅ Voice extracted and ready with audio!";
             } catch (err) {
                 alert("Voice extract failed!");
             }
         });
 
-        // Dynamic Playback Engine (Meme & Voice Sync)
+        // FIX 2: Stage Background Upload Working Handler
+        document.getElementById('bgUpload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                viewport.style.backgroundImage = `url('${event.target.result}')`;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // FIX 3: Upload Asset Image Working Handler
+        document.getElementById('assetUpload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const assetDiv = document.createElement('div');
+                assetDiv.className = 'draggable-element asset-wrapper';
+                assetDiv.style.transform = 'translate3d(50px, 50px, 0px) scale(1)';
+
+                const img = document.createElement('img');
+                img.src = event.target.result;
+
+                assetDiv.appendChild(img);
+                viewport.appendChild(assetDiv);
+
+                makeDraggable(assetDiv);
+                selectElement(assetDiv);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Playback Engine with Speaker Output
         playBtn.addEventListener('click', () => {
             if (isPlaying) {
                 pausePlayback();
@@ -726,17 +764,35 @@
         });
 
         function startPlaybackAt(timeSec) {
-            if (activeSource) try { activeSource.stop(); } catch(e){}
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-
             if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
             if (audioContext.state === 'suspended') audioContext.resume();
 
+            if (activeSource) try { activeSource.stop(); } catch(e){}
+
+            if (audioBuffer) {
+                activeSource = audioContext.createBufferSource();
+                activeSource.buffer = audioBuffer;
+
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = parseFloat(document.getElementById('volSlider').value);
+
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                // CONNECT TO AUDIO DESTINATION (SPEAKERS)
+                activeSource.connect(gainNode);
+                gainNode.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                activeSource.start(0, timeSec);
+            }
+
             startTime = audioContext.currentTime - timeSec;
             isPlaying = true;
-            playBtn.innerText = '⏸️ Pause';
+            playBtn.innerText = '⏸️ Pause Timeline';
 
-            animateTimeline();
+            requestAnimationFrame(animateTimeline);
         }
 
         function pausePlayback() {
@@ -744,7 +800,6 @@
             if (activeSource) try { activeSource.stop(); } catch(e){}
             memePlayer.pause();
             playBtn.innerText = '▶️ Play Timeline';
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             resetPose();
         }
 
@@ -764,7 +819,6 @@
 
             updateTimeDisplay();
 
-            // Find current active clip in timeline
             let accumulated = 0;
             let activeClip = null;
             let localTime = 0;
@@ -778,34 +832,34 @@
                 accumulated += clip.duration;
             }
 
-            // Stage Switch Controller
             if (activeClip && activeClip.type === 'meme') {
-                // Show Meme Overlay Screen & Auto-Play Video
                 if (memeOverlay.style.display !== 'flex') {
                     memeOverlay.style.display = 'flex';
                     memePlayer.src = activeClip.src;
                     memePlayer.currentTime = localTime;
                     memePlayer.play().catch(()=>{});
                 }
-                resetPose(); // Pause Character Voice Animation
+                resetPose();
             } else {
-                // Show 2D Character & Hide Meme Overlay
                 if (memeOverlay.style.display === 'flex') {
                     memeOverlay.style.display = 'none';
                     memePlayer.pause();
                 }
 
-                // Simulate Voice Lip Sync during Voice Clips
-                if (audioBuffer) {
+                // Lip Sync Animation using Real-time Analyser Data
+                if (analyser && dataArray) {
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = dataArray.reduce((a, b) => a + b, 0);
+                    let avg = sum / dataArray.length;
+
                     const mouth = document.getElementById('mouth');
                     const leftArm = document.getElementById('left-arm');
-                    const mouthScale = 1 + Math.abs(Math.sin(currentPlayheadTime * 15)) * 2.5;
-                    if (mouth) mouth.style.transform = `scaleY(${mouthScale})`;
-                    if (leftArm) leftArm.style.transform = `rotate(${Math.sin(currentPlayheadTime * 10) * 15}deg)`;
+                    if (mouth) mouth.style.transform = `scaleY(${Math.min(1 + avg / 15, 4)})`;
+                    if (leftArm) leftArm.style.transform = `rotate(${avg / 5}deg)`;
                 }
             }
 
-            animationFrameId = requestAnimationFrame(animateTimeline);
+            requestAnimationFrame(animateTimeline);
         }
 
         function resetPose() {
@@ -813,7 +867,52 @@
             document.getElementById('left-arm').style.transform = 'rotate(0deg)';
         }
 
-        // Dragging 3D Position Logic
+        // Draggable System for Character & Custom Assets
+        function makeDraggable(element) {
+            let isDragging = false;
+            let startX, startY, currentX = 100, currentY = 40, currentZ = 0, currentScale = 1;
+
+            element.addEventListener('pointerdown', (e) => {
+                isDragging = true;
+                selectElement(element);
+
+                const coords = getTransformValues(element);
+                currentX = coords.x;
+                currentY = coords.y;
+                currentZ = coords.z;
+                currentScale = coords.s;
+
+                startX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
+                startY = (e.touches ? e.touches[0].clientY : e.clientY) - currentY;
+
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+            });
+
+            function onPointerMove(e) {
+                if (!isDragging) return;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                currentX = clientX - startX;
+                currentY = clientY - startY;
+
+                element.style.transform = `translate3d(${currentX}px, ${currentY}px, ${currentZ}px) scale(${currentScale})`;
+            }
+
+            function onPointerUp() {
+                isDragging = false;
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+            }
+        }
+
+        function selectElement(el) {
+            document.querySelectorAll('.draggable-element').forEach(e => e.classList.remove('selected'));
+            selectedElement = el;
+            selectedElement.classList.add('selected');
+        }
+
         function getTransformValues(el) {
             const transform = el.style.transform;
             const match3D = transform.match(/translate3d\(([^px]+)px,\s*([^px]+)px,\s*([^px]+)px\)/);
@@ -836,6 +935,8 @@
         document.getElementById('posYSlider').oninput = applyTransformFromSliders;
         document.getElementById('posZSlider').oninput = applyTransformFromSliders;
         document.getElementById('scaleSlider').oninput = applyTransformFromSliders;
+
+        makeDraggable(document.getElementById('characterWrapper'));
 
         function setRatio(ratio, e) {
             document.querySelectorAll('#tab-ratio .btn-opt').forEach(b => b.classList.remove('active'));
