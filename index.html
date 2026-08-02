@@ -105,8 +105,28 @@
             pointer-events: none;
         }
 
+        /* Meme Overlay Screen */
+        .meme-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .meme-overlay video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
         .bottom-panel {
-            height: 330px;
+            height: 350px;
             background: #181920;
             border-top: 1px solid #282a36;
             display: flex;
@@ -269,13 +289,41 @@
             text-align: center;
         }
 
-        /* Dynamic Timeline UI */
+        /* Timeline & Meme Controls UI */
         .timeline-container {
             background: #101115;
             border: 1px solid #282a36;
             border-radius: 6px;
             padding: 10px;
             margin-top: 5px;
+        }
+
+        .timeline-tools {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .btn-tool {
+            background: #20222c;
+            border: 1px solid #282a36;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-tool:hover {
+            background: #ff4757;
+            border-color: #ff4757;
+        }
+
+        .btn-tool.danger {
+            background: #ff4757;
         }
 
         .timeline-header {
@@ -290,18 +338,40 @@
         .timeline-track-wrapper {
             position: relative;
             background: #20222c;
-            height: 36px;
+            height: 50px;
             border-radius: 4px;
             overflow-x: auto;
             border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
         }
 
-        .timeline-track {
-            height: 100%;
-            background: linear-gradient(90deg, #2e313d 0%, #ff4757 100%);
-            width: 100%;
+        .timeline-clip {
+            height: 38px;
+            background: #2ed573;
+            color: #000;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 8px;
             position: relative;
-            min-width: 100%;
+            margin-right: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .timeline-clip.selected {
+            border-color: #ffffff;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+        }
+
+        .timeline-clip.meme-clip {
+            background: #eccc68;
+            color: #000;
         }
 
         .timeline-playhead {
@@ -310,7 +380,7 @@
             left: 0;
             width: 3px;
             height: 100%;
-            background: #00ffffff;
+            background: #00ffff;
             box-shadow: 0 0 8px #00ffff;
             z-index: 10;
             pointer-events: none;
@@ -341,6 +411,12 @@
 
     <main class="workspace">
         <div id="viewport" class="viewport ratio-16-9">
+            <!-- Meme Video Screen Overlay -->
+            <div id="memeOverlay" class="meme-overlay">
+                <video id="memePlayer" playsinline></video>
+            </div>
+
+            <!-- Main Character -->
             <div id="characterWrapper" class="draggable-element character-wrapper selected" style="transform: translate3d(100px, 40px, 0px) scale(1);">
                 <svg viewBox="-50 -20 450 500" xmlns="http://www.w3.org/2000/svg">
                     <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
@@ -386,12 +462,11 @@
 
     <footer class="bottom-panel">
         <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('transform', event)">📐 3D Space (X, Y, Z)</button>
+            <button class="tab-btn active" onclick="switchTab('transform', event)">📐 3D Space (X,Y,Z)</button>
             <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Sync</button>
-            <button class="tab-btn" onclick="switchTab('timeline', event)">⏱️ Dynamic Timeline</button>
+            <button class="tab-btn" onclick="switchTab('timeline', event)">⏱️ Timeline & Meme</button>
             <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Assets & BG</button>
             <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Aspect Ratio</button>
-            <button class="tab-btn" onclick="switchTab('layers', event)">📚 Layers Stack</button>
         </div>
 
         <div id="tab-transform" class="tab-content active">
@@ -442,29 +517,35 @@
             </div>
 
             <div class="control-row">
-                <label style="font-size:0.8rem; color:#a4b0be; display:flex; align-items:center; gap:8px;">
-                    <input type="checkbox" id="telephonicFx"> 📞 Walkie-Talkie FX Filter
-                </label>
-            </div>
-
-            <div class="control-row">
                 <button id="recordBtn" class="btn-record">🎤 Record Mic</button>
                 <button id="playBtn" class="btn-play" disabled>▶️ Play</button>
             </div>
         </div>
 
-        <!-- Auto-Expanding Dynamic Timeline Tab -->
+        <!-- Advanced Timeline, Trim/Cut, Delete & Meme Insertion Tab -->
         <div id="tab-timeline" class="tab-content">
             <div class="timeline-container">
+                <div class="timeline-tools">
+                    <label class="btn-tool">
+                        🤡 Add Meme Video
+                        <input type="file" id="memeUpload" accept="video/*" style="display:none;">
+                    </label>
+                    <button class="btn-tool" onclick="splitClip()">✂️ Split/Cut Clip</button>
+                    <button class="btn-tool danger" onclick="deleteSelectedClip()">🗑️ Delete Clip</button>
+                </div>
+
                 <div class="timeline-header">
-                    <span>⏱️ Voice Timeline Track</span>
+                    <span>⏱️ Multi-Track Timeline</span>
                     <span id="timeCounter">0:00 / 0:00</span>
                 </div>
+
                 <div class="timeline-track-wrapper" id="trackWrapper">
-                    <div class="timeline-track" id="timelineTrack">
-                        <div class="timeline-playhead" id="playhead"></div>
+                    <div id="timelineClips" style="display:flex; height:100%; align-items:center;">
+                        <!-- Clips will render dynamically -->
                     </div>
+                    <div class="timeline-playhead" id="playhead"></div>
                 </div>
+
                 <div class="timeline-ruler" id="timelineRuler">
                     <span>0s</span>
                     <span>End</span>
@@ -475,7 +556,7 @@
         <div id="tab-assets" class="tab-content">
             <div class="control-row">
                 <label class="file-btn">
-                    ➕ Upload Custom Asset (PNG/SVG)
+                    ➕ Upload Custom Asset
                     <input type="file" id="assetUpload" accept="image/*">
                 </label>
             </div>
@@ -494,15 +575,6 @@
                 <div class="btn-opt" onclick="setRatio('1-1', event)">1:1 Square</div>
             </div>
         </div>
-
-        <div id="tab-layers" class="tab-content">
-            <div id="layerList">
-                <div class="layer-item active">
-                    <span>🎭 Main Character</span>
-                    <span>Active</span>
-                </div>
-            </div>
-        </div>
     </footer>
 
     <script>
@@ -512,6 +584,10 @@
         let pauseOffset = 0;
         let startTime = 0;
         let analyser, dataArray;
+
+        // Clip Sequence State Management
+        let timelineClipsData = []; // Array of clip objects: { id, type: 'voice'|'meme', duration, src }
+        let selectedClipId = null;
 
         let selectedElement = document.getElementById('characterWrapper');
 
@@ -524,12 +600,13 @@
         const pitchSlider = document.getElementById('pitchSlider');
         const speedSlider = document.getElementById('speedSlider');
         const volSlider = document.getElementById('volSlider');
-        const telephonicFx = document.getElementById('telephonicFx');
         const audioStatus = document.getElementById('audioStatus');
 
         const playhead = document.getElementById('playhead');
         const timeCounter = document.getElementById('timeCounter');
         const timelineRuler = document.getElementById('timelineRuler');
+        const memeOverlay = document.getElementById('memeOverlay');
+        const memePlayer = document.getElementById('memePlayer');
 
         function switchTab(tabId, e) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -548,55 +625,99 @@
             viewport.className = `viewport ratio-${ratio}`;
         }
 
-        document.getElementById('bgUpload').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    viewport.style.backgroundImage = `url('${evt.target.result}')`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        document.getElementById('assetUpload').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    const assetDiv = document.createElement('div');
-                    assetDiv.className = 'draggable-element asset-wrapper';
-                    assetDiv.style.transform = `translate3d(50px, 50px, 0px) scale(1)`;
-                    assetDiv.innerHTML = `<img src="${evt.target.result}">`;
-                    
-                    viewport.appendChild(assetDiv);
-                    makeDraggable(assetDiv);
-                    selectElement(assetDiv);
-
-                    const layerList = document.getElementById('layerList');
-                    const layerItem = document.createElement('div');
-                    layerItem.className = 'layer-item';
-                    layerItem.innerHTML = `<span>📦 Asset Layer</span><span onclick="this.parentElement.remove(); assetDiv.remove();">🗑️</span>`;
-                    layerList.appendChild(layerItem);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Setup Dynamic Timeline based on Audio Buffer Duration
-        function initTimeline(duration) {
-            const durSec = Math.round(duration);
-            timeCounter.innerText = `0:00 / 0:${durSec < 10 ? '0' + durSec : durSec}`;
+        // Render Dynamic Clips on Timeline
+        function renderTimelineUI() {
+            const container = document.getElementById('timelineClips');
+            container.innerHTML = '';
             
-            timelineRuler.innerHTML = `
-                <span>0s</span>
-                <span>${Math.round(durSec / 2)}s</span>
-                <span>${durSec}s</span>
-            `;
-            playhead.style.left = `0%`;
+            let totalDuration = 0;
+            timelineClipsData.forEach(clip => totalDuration += clip.duration);
+
+            timelineClipsData.forEach((clip, index) => {
+                const clipDiv = document.createElement('div');
+                clipDiv.className = `timeline-clip ${clip.type === 'meme' ? 'meme-clip' : ''} ${selectedClipId === clip.id ? 'selected' : ''}`;
+                
+                // Scale clip width relative to total duration
+                const widthPercent = totalDuration > 0 ? (clip.duration / totalDuration) * 100 : 100;
+                clipDiv.style.width = `calc(${widthPercent}% - 4px)`;
+                clipDiv.style.minWidth = '60px';
+                
+                clipDiv.innerHTML = clip.type === 'voice' ? `🗣️ Voice (${clip.duration.toFixed(1)}s)` : `🤡 Meme (${clip.duration.toFixed(1)}s)`;
+                
+                clipDiv.onclick = () => {
+                    selectedClipId = clip.id;
+                    renderTimelineUI();
+                };
+
+                container.appendChild(clipDiv);
+            });
+
+            const durSec = Math.round(totalDuration);
+            timeCounter.innerText = `0:00 / 0:${durSec < 10 ? '0' + durSec : durSec}`;
+            timelineRuler.innerHTML = `<span>0s</span><span>${Math.round(durSec / 2)}s</span><span>${durSec}s</span>`;
         }
 
-        // Gallery Video Audio Extractor
+        // Add Meme Video to Timeline
+        document.getElementById('memeUpload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const videoUrl = URL.createObjectURL(file);
+            const tempVid = document.createElement('video');
+            tempVid.src = videoUrl;
+
+            tempVid.onloadedmetadata = () => {
+                const memeClip = {
+                    id: 'meme_' + Date.now(),
+                    type: 'meme',
+                    duration: tempVid.duration,
+                    src: videoUrl
+                };
+                
+                timelineClipsData.push(memeClip);
+                renderTimelineUI();
+                alert("🤡 Meme Video Added to Timeline!");
+            };
+        });
+
+        // Split Selected Clip
+        function splitClip() {
+            if (!selectedClipId) {
+                alert("Pehle timeline se kisi clip ko select karein!");
+                return;
+            }
+            const index = timelineClipsData.findIndex(c => c.id === selectedClipId);
+            if (index === -1) return;
+
+            const clip = timelineClipsData[index];
+            if (clip.duration <= 1) return;
+
+            const half = clip.duration / 2;
+            clip.duration = half;
+
+            const newClip = {
+                id: clip.type + '_' + Date.now(),
+                type: clip.type,
+                duration: half,
+                src: clip.src
+            };
+
+            timelineClipsData.splice(index + 1, 0, newClip);
+            renderTimelineUI();
+        }
+
+        // Delete Selected Clip
+        function deleteSelectedClip() {
+            if (!selectedClipId) {
+                alert("Timeline se kisi clip par click karke select karein!");
+                return;
+            }
+            timelineClipsData = timelineClipsData.filter(c => c.id !== selectedClipId);
+            selectedClipId = null;
+            renderTimelineUI();
+        }
+
+        // Extract Voice Video Implementation
         document.getElementById('videoUpload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -615,14 +736,20 @@
                 isPaused = false;
                 audioStatus.innerText = "✅ Video voice extracted successfully!";
                 
-                initTimeline(audioBuffer.duration);
+                // Add initial voice track to timeline
+                timelineClipsData = [{
+                    id: 'voice_' + Date.now(),
+                    type: 'voice',
+                    duration: audioBuffer.duration
+                }];
+                renderTimelineUI();
             } catch (err) {
                 audioStatus.innerText = "❌ Failed to extract audio from video.";
                 alert("Error processing video file: " + err.message);
             }
         });
 
-        // 3D Space Transform System
+        // 3D Space Controls
         function getTransformValues(el) {
             const transform = el.style.transform;
             const match3D = transform.match(/translate3d\(([^px]+)px,\s*([^px]+)px,\s*([^px]+)px\)/);
@@ -740,7 +867,12 @@
                         isPaused = false;
                         audioStatus.innerText = "🎤 Mic voice recorded!";
                         
-                        initTimeline(audioBuffer.duration);
+                        timelineClipsData = [{
+                            id: 'voice_' + Date.now(),
+                            type: 'voice',
+                            duration: audioBuffer.duration
+                        }];
+                        renderTimelineUI();
                     };
 
                     mediaRecorder.start();
@@ -756,7 +888,7 @@
             }
         });
 
-        // Play/Pause & Real-Time Timeline Progress Engine
+        // Dynamic Playback & Lip-Sync Logic
         playBtn.addEventListener('click', () => {
             if (!audioBuffer) return;
 
@@ -794,18 +926,7 @@
             const gainNode = audioContext.createGain();
             gainNode.gain.value = parseFloat(volSlider.value);
 
-            let lastNode = source;
-
-            if (telephonicFx.checked) {
-                const filter = audioContext.createBiquadFilter();
-                filter.type = "bandpass";
-                filter.frequency.value = 1000;
-                filter.Q.value = 3.0;
-                lastNode.connect(filter);
-                lastNode = filter;
-            }
-
-            lastNode.connect(gainNode);
+            source.connect(gainNode);
 
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
@@ -836,6 +957,7 @@
                     playBtn.innerText = '▶️ Play';
                     playBtn.classList.remove('paused');
                     playhead.style.left = '100%';
+                    memeOverlay.style.display = 'none';
                     if (animationFrameId) cancelAnimationFrame(animationFrameId);
                     resetPose();
                 }
@@ -845,23 +967,16 @@
         function animate() {
             if (!isPlaying) return;
 
-            // Live Playhead Movement & Counter Sync
             const currentTime = pauseOffset + (audioContext.currentTime - startTime);
             const duration = audioBuffer.duration;
             const progress = Math.min((currentTime / duration) * 100, 100);
             
             playhead.style.left = `${progress}%`;
-            
-            const curSec = Math.floor(currentTime);
-            const totalSec = Math.floor(duration);
-            timeCounter.innerText = `0:${curSec < 10 ? '0' + curSec : curSec} / 0:${totalSec < 10 ? '0' + totalSec : totalSec}`;
 
-            // Character Lip Sync Logic
+            // Lip-Sync Engine
             const mouth = document.getElementById('mouth');
             const leftArm = document.getElementById('left-arm');
             const rightArm = document.getElementById('right-arm');
-            const leftLeg = document.getElementById('left-leg');
-            const rightLeg = document.getElementById('right-leg');
 
             analyser.getByteFrequencyData(dataArray);
             let sum = dataArray.reduce((a, b) => a + b, 0);
@@ -872,10 +987,6 @@
                 leftArm.style.transform = `rotate(${average / 6}deg)`;
                 rightArm.style.transform = `rotate(-${average / 6}deg)`;
             }
-            if (leftLeg && rightLeg) {
-                leftLeg.style.transform = `rotate(-${average / 15}deg)`;
-                rightLeg.style.transform = `rotate(${average / 15}deg)`;
-            }
 
             animationFrameId = requestAnimationFrame(animate);
         }
@@ -884,8 +995,6 @@
             document.getElementById('mouth').style.transform = 'scaleY(1)';
             document.getElementById('left-arm').style.transform = 'rotate(0deg)';
             document.getElementById('right-arm').style.transform = 'rotate(0deg)';
-            document.getElementById('left-leg').style.transform = 'rotate(0deg)';
-            document.getElementById('right-leg').style.transform = 'rotate(0deg)';
         }
     </script>
 </body>
