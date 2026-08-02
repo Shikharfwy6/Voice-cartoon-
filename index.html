@@ -922,17 +922,29 @@
         let fsOriginalParent = null;
         let fsOriginalNextSibling = null;
         let fsPreviouslySelected = null;
+        let fsNativeWidth = 0;
+        let fsNativeHeight = 0;
 
         function sizeFullscreenStage() {
             const cls = viewport.className; // e.g. "viewport ratio-16-9"
+            // Use the viewport's REAL editor size as the fixed internal
+            // coordinate system — character/asset positions are stored as
+            // raw pixel translate3d() values relative to this size. We must
+            // never change viewport's actual width/height, only how large it
+            // is drawn on screen (via CSS transform: scale), otherwise every
+            // child's pixel position ends up pointing at the wrong spot —
+            // this was the cause of the character "jumping" in fullscreen.
+            const nativeW = fsNativeWidth;
+            const nativeH = fsNativeHeight;
+
             const maxW = window.innerWidth * 0.96;
             const maxH = window.innerHeight * 0.78;
-            let w, h;
-            if (cls.includes('ratio-16-9')) { w = maxW; h = w * 9 / 16; if (h > maxH) { h = maxH; w = h * 16 / 9; } }
-            else if (cls.includes('ratio-9-16')) { h = maxH; w = h * 9 / 16; if (w > maxW) { w = maxW; h = w * 16 / 9; } }
-            else { w = Math.min(maxW, maxH); h = w; }
-            fullscreenStage.style.width = w + 'px';
-            fullscreenStage.style.height = h + 'px';
+            const scale = Math.min(maxW / nativeW, maxH / nativeH);
+
+            fullscreenStage.style.width = nativeW + 'px';
+            fullscreenStage.style.height = nativeH + 'px';
+            fullscreenStage.style.transform = `scale(${scale})`;
+            fullscreenStage.style.transformOrigin = 'center center';
         }
 
         function startFullscreenPlayback() {
@@ -959,13 +971,23 @@
             fsOriginalParent = viewport.parentElement;
             fsOriginalNextSibling = viewport.nextSibling;
 
-            sizeFullscreenStage();
+            // Capture the viewport's actual editor pixel size BEFORE moving
+            // it — this is the coordinate system every character/asset
+            // translate3d() position is relative to.
+            const rect = viewport.getBoundingClientRect();
+            fsNativeWidth = rect.width;
+            fsNativeHeight = rect.height;
+
             fullscreenStage.appendChild(viewport);
-            viewport.style.width = '100%';
-            viewport.style.height = '100%';
+            // Keep viewport at its native editor pixel size (do NOT stretch
+            // it to 100%/100% — that's what broke positions before). The
+            // fullscreenStage wrapper is what gets visually scaled up.
+            viewport.style.width = fsNativeWidth + 'px';
+            viewport.style.height = fsNativeHeight + 'px';
             viewport.style.maxWidth = 'none';
             viewport.style.maxHeight = 'none';
 
+            sizeFullscreenStage();
             fullscreenOverlay.style.display = 'flex';
             fsPlayHint.innerText = "Ab apna screen recorder start karein, phir ▶️ Play dabayein.";
             fsPlayBtn.innerText = '▶️ Play';
@@ -989,11 +1011,16 @@
             pausePlayback();
             window.removeEventListener('resize', sizeFullscreenStage);
 
-            // Restore the viewport exactly where it was in the editor.
+            // Restore the viewport exactly where it was in the editor —
+            // including undoing the fixed pixel width/height we set for
+            // fullscreen, so it goes back to its normal responsive CSS sizing.
             viewport.style.width = '';
             viewport.style.height = '';
             viewport.style.maxWidth = '';
             viewport.style.maxHeight = '';
+            fullscreenStage.style.transform = '';
+            fullscreenStage.style.width = '';
+            fullscreenStage.style.height = '';
             if (fsOriginalNextSibling) {
                 fsOriginalParent.insertBefore(viewport, fsOriginalNextSibling);
             } else if (fsOriginalParent) {
