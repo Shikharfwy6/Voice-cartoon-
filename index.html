@@ -547,11 +547,23 @@
                 <div class="btn-opt" onclick="setRatio('1-1', event)">1:1 Square</div>
             </div>
             <div class="control-row">
-                <button id="exportBtn" class="btn-export" onclick="exportVideo()">💾 Export Animation Video</button>
+                <button id="fullscreenPlayBtn" class="btn-export" onclick="startFullscreenPlayback()">🖥️ Fullscreen Play (Screen Record ke liye)</button>
             </div>
-            <div id="exportStatus" class="status-text" style="margin-top: 5px;"></div>
+            <div id="exportStatus" class="status-text" style="margin-top: 5px;">Fullscreen open hote hi apna phone ka screen recorder ON kar dein, phir yahi button dobara tap karke animation play karein.</div>
         </div>
     </footer>
+
+    <!-- Fullscreen playback overlay: exact same live viewport, just blown up
+         to fill the whole screen so a phone's built-in screen recorder can
+         capture it directly. No canvas/MediaRecorder involved, so there is
+         zero risk of displacement, missing mouth, or quality loss — what you
+         see is exactly what gets recorded. -->
+    <div id="fullscreenOverlay" style="display:none; position:fixed; inset:0; background:#000; z-index:1000; flex-direction:column; align-items:center; justify-content:center;">
+        <button id="exitFullscreenBtn" onclick="exitFullscreenPlayback()" style="position:absolute; top:14px; right:14px; z-index:1001; background:#20222c; color:#fff; border:1px solid #444; border-radius:6px; padding:8px 14px; font-size:0.85rem;">✕ Exit</button>
+        <div id="fsPlayHint" style="position:absolute; top:14px; left:14px; z-index:1001; color:#2ed573; font-size:0.75rem; max-width:65%;"></div>
+        <div id="fullscreenStage" style="position:relative; overflow:hidden;"></div>
+        <button id="fsPlayBtn" onclick="toggleFullscreenPlay()" style="position:absolute; bottom:24px; z-index:1001; background:#2ed573; color:#000; border:none; border-radius:30px; padding:14px 28px; font-weight:bold; font-size:1rem;">▶️ Play</button>
+    </div>
 
     <script>
         let audioContext, audioBuffer, activeSource, gainNode, filterNode, analyser, dataArray;
@@ -573,7 +585,6 @@
         const memeOverlay = document.getElementById('memeOverlay');
         const memePlayer = document.getElementById('memePlayer');
         const playBtn = document.getElementById('playBtn');
-        const exportBtn = document.getElementById('exportBtn');
 
         function switchTab(tabId, e) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -692,7 +703,6 @@
                 });
                 renderTimelineUI();
                 playBtn.disabled = false;
-                exportBtn.disabled = false;
             };
         });
 
@@ -714,7 +724,6 @@
                 audioBuffer = await audioContext.decodeAudioData(fileArrayBuffer);
 
                 playBtn.disabled = false;
-                exportBtn.disabled = false;
                 timelineClipsData = [{
                     id: 'voice_' + Date.now(),
                     type: 'voice',
@@ -896,329 +905,91 @@
             if (leftArm) leftArm.style.transform = 'rotate(0deg)';
         }
 
-        // ===================== FIXED EXPORT FUNCTION =====================
-        // Key fixes vs original:
-        // 1. Waits for the FIRST real frame to be drawn (await) before starting
-        //    captureStream()/MediaRecorder — this was the main cause of broken/
-        //    blank/corrupt output files.
-        // 2. Removed the fake 'video/mp4' fallback — canvas.captureStream()
-        //    cannot actually be encoded as playable mp4 in-browser; claiming
-        //    mp4 while recording webm data produces a broken file that players
-        //    (like the one in the screenshot) can't open.
-        // 3. mediaRecorder.start(100) with a timeslice so chunks flush
-        //    periodically instead of only at stop() — avoids empty/truncated
-        //    blobs if something interrupts recording.
-        // 4. drawFrame() is awaited in a loop (instead of fire-and-forget
-        //    Image() loads) so every captured frame is guaranteed to have the
-        //    character actually drawn on it.
-        // 5. Export button is disabled while exporting so it can't be tapped
-        //    twice and start overlapping recorders.
-        async function exportVideo() {
-            const exportStatus = document.getElementById('exportStatus');
+        // ===================== FULLSCREEN PLAYBACK (for manual screen recording) =====================
+        // Instead of re-drawing the character onto a <canvas> (which kept
+        // breaking: quality loss, character displacement, mouth vanishing —
+        // because every visual detail had to be re-implemented by hand),
+        // this mode simply moves the REAL, LIVE viewport element into a
+        // fullscreen overlay. Same DOM, same CSS animations, same SVG,
+        // same audio — nothing is re-drawn or re-encoded, so nothing can
+        // drift from what you already see working in the editor. You just
+        // start your phone's built-in screen recorder, tap Play here, and
+        // record the real thing.
+        const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+        const fullscreenStage = document.getElementById('fullscreenStage');
+        const fsPlayBtn = document.getElementById('fsPlayBtn');
+        const fsPlayHint = document.getElementById('fsPlayHint');
+        let fsOriginalParent = null;
+        let fsOriginalNextSibling = null;
+
+        function sizeFullscreenStage() {
+            const cls = viewport.className; // e.g. "viewport ratio-16-9"
+            const maxW = window.innerWidth * 0.96;
+            const maxH = window.innerHeight * 0.78;
+            let w, h;
+            if (cls.includes('ratio-16-9')) { w = maxW; h = w * 9 / 16; if (h > maxH) { h = maxH; w = h * 16 / 9; } }
+            else if (cls.includes('ratio-9-16')) { h = maxH; w = h * 9 / 16; if (w > maxW) { w = maxW; h = w * 16 / 9; } }
+            else { w = Math.min(maxW, maxH); h = w; }
+            fullscreenStage.style.width = w + 'px';
+            fullscreenStage.style.height = h + 'px';
+        }
+
+        function startFullscreenPlayback() {
             if (timelineClipsData.length === 0) {
-                alert("Pehle timeline mein koi audio ya clip add karein!");
+                alert("Pehle timeline mein koi audio/video clip add karein!");
                 return;
             }
 
-            if (!('MediaRecorder' in window)) {
-                exportStatus.innerText = "❌ Ye browser video recording support nahi karta!";
-                return;
-            }
+            // Move the actual live viewport (with character, assets,
+            // background, meme overlay — everything) into the fullscreen
+            // stage. We remember exactly where it came from so Exit can put
+            // it back untouched.
+            fsOriginalParent = viewport.parentElement;
+            fsOriginalNextSibling = viewport.nextSibling;
 
-            exportBtn.disabled = true;
-            exportStatus.innerText = "⏳ Preparing export...";
+            sizeFullscreenStage();
+            fullscreenStage.appendChild(viewport);
+            viewport.style.width = '100%';
+            viewport.style.height = '100%';
+            viewport.style.maxWidth = 'none';
+            viewport.style.maxHeight = 'none';
 
-            const viewportEl = document.getElementById('viewport');
+            fullscreenOverlay.style.display = 'flex';
+            fsPlayHint.innerText = "Ab apna screen recorder start karein, phir ▶️ Play dabayein.";
+            fsPlayBtn.innerText = '▶️ Play';
+            window.addEventListener('resize', sizeFullscreenStage);
+        }
 
-            // ---- High-DPI canvas so exported video isn't blurry/pixelated ----
-            const dpr = Math.min(window.devicePixelRatio || 1, 2); // cap at 2x to keep perf sane
-            const cssW = viewportEl.clientWidth || 640;
-            const cssH = viewportEl.clientHeight || 360;
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.round(cssW * dpr);
-            canvas.height = Math.round(cssH * dpr);
-            const ctx = canvas.getContext('2d');
-            ctx.scale(dpr, dpr); // all draw calls below use CSS-pixel coordinates
-
-            const svgElement = document.querySelector('.character-wrapper svg');
-            const characterWrapperEl = document.getElementById('characterWrapper');
-            const assetWrapperEls = () => Array.from(document.querySelectorAll('.asset-wrapper'));
-
-            // Snapshot of the viewport background (color or image), applied every frame.
-            const bgImageUrl = (() => {
-                const bg = viewportEl.style.backgroundImage;
-                const m = bg && bg.match(/url\(["']?(.*?)["']?\)/);
-                return m ? m[1] : null;
-            })();
-            let bgImageEl = null;
-            if (bgImageUrl) {
-                bgImageEl = new Image();
-                bgImageEl.src = bgImageUrl;
-            }
-
-            // Reusable Image for the CHARACTER only — its pose (mouth/arm) changes
-            // during playback, so it's re-encoded from SVG only when the pose
-            // actually changes (not every frame), keeping things smooth.
-            const charImg = new Image();
-            let charImgReady = false;
-            let pendingCharUrl = null;
-            let lastCharSvgString = null;
-
-            // Bakes the LIVE computed pose (mouth scaleY, arm rotate) from the
-            // real on-screen elements into explicit, self-contained SVG
-            // attributes on a clone before serializing.
-            //
-            // Why this is needed: mouth/left-arm use
-            //   transform-origin: center center; transform-box: fill-box;
-            // which is defined in the page's external <style> tag. When the
-            // SVG is serialized on its own (XMLSerializer) and loaded as a
-            // standalone image, that external stylesheet rule does NOT travel
-            // with it — so transform-box:fill-box is lost, the scaleY()/
-            // rotate() ends up pivoting around the wrong origin (e.g. the SVG's
-            // top-left / viewBox origin instead of the mouth's own center),
-            // which pushed the mouth shape off-canvas or shrank it to nothing.
-            // Converting to an explicit SVG-space transform-origin fixes it.
-            function buildSelfContainedSvgString() {
-                const clone = svgElement.cloneNode(true);
-
-                const applyFillBoxTransform = (liveEl, cloneSelector) => {
-                    if (!liveEl) return;
-                    const cloneEl = clone.querySelector(cloneSelector);
-                    if (!cloneEl) return;
-                    const liveTransform = liveEl.style.transform;
-                    if (!liveTransform || liveTransform === 'none') {
-                        cloneEl.removeAttribute('transform');
-                        return;
-                    }
-                    // Get the element's own bounding box (in local SVG user
-                    // units) so we can pivot around its true center, exactly
-                    // like transform-box:fill-box does live in the DOM.
-                    const bbox = liveEl.getBBox();
-                    const cx = bbox.x + bbox.width / 2;
-                    const cy = bbox.y + bbox.height / 2;
-
-                    const scaleMatch = liveTransform.match(/scaleY\(([-\d.]+)\)/);
-                    const rotateMatch = liveTransform.match(/rotate\(([-\d.]+)deg\)/);
-
-                    let svgTransform = `translate(${cx} ${cy})`;
-                    if (scaleMatch) svgTransform += ` scale(1 ${scaleMatch[1]})`;
-                    if (rotateMatch) svgTransform += ` rotate(${rotateMatch[1]})`;
-                    svgTransform += ` translate(${-cx} ${-cy})`;
-
-                    cloneEl.setAttribute('transform', svgTransform);
-                };
-
-                applyFillBoxTransform(document.getElementById('mouth'), '#mouth');
-                applyFillBoxTransform(document.getElementById('left-arm'), '#left-arm');
-                applyFillBoxTransform(document.getElementById('right-arm'), '#right-arm');
-
-                return new XMLSerializer().serializeToString(clone);
-            }
-
-            function encodeCharacterNow() {
-                return new Promise((resolve) => {
-                    if (!svgElement) { resolve(); return; }
-                    const svgData = buildSelfContainedSvgString();
-                    if (svgData === lastCharSvgString && charImgReady) { resolve(); return; }
-                    lastCharSvgString = svgData;
-                    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                    const url = URL.createObjectURL(svgBlob);
-                    const prevUrl = pendingCharUrl;
-                    pendingCharUrl = url;
-                    charImg.onload = () => {
-                        charImgReady = true;
-                        if (prevUrl) URL.revokeObjectURL(prevUrl);
-                        resolve();
-                    };
-                    charImg.onerror = () => { if (prevUrl) URL.revokeObjectURL(prevUrl); resolve(); };
-                    charImg.src = url;
-                });
-            }
-
-            // Pre-load any uploaded asset images so drawFrame() never has to
-            // wait mid-loop (which caused the lag/flicker).
-            const assetImgCache = new Map(); // imgSrc -> HTMLImageElement (loaded)
-            async function preloadAssetImages() {
-                const imgs = assetWrapperEls().map(w => w.querySelector('img')).filter(Boolean);
-                await Promise.all(imgs.map(imgEl => new Promise((resolve) => {
-                    if (assetImgCache.has(imgEl.src)) { resolve(); return; }
-                    const im = new Image();
-                    im.onload = () => { assetImgCache.set(imgEl.src, im); resolve(); };
-                    im.onerror = resolve;
-                    im.src = imgEl.src;
-                })));
-            }
-
-            // Reads the live translate3d(x,y,z) scale(s) transform of an
-            // element exactly as the user has positioned/scaled it on screen —
-            // this is what fixes the "character displaced in video" bug: the
-            // old code always drew at a hardcoded (100,40) regardless of where
-            // the character actually was.
-            function readTransform(el) {
-                const t = el.style.transform || '';
-                const m3d = t.match(/translate3d\(([-\d.]+)px,\s*([-\d.]+)px,\s*([-\d.]+)px\)/);
-                const mS = t.match(/scale\(([-\d.]+)\)/);
-                return {
-                    x: m3d ? parseFloat(m3d[1]) : 0,
-                    y: m3d ? parseFloat(m3d[2]) : 0,
-                    s: mS ? parseFloat(mS[1]) : 1
-                };
-            }
-
-            // Draws exactly one full frame (background + assets + character)
-            // at their CURRENT live positions. Returns a promise so the first
-            // call can be awaited to guarantee a real (non-blank) first frame.
-            async function drawFrame() {
-                // Background
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, cssW, cssH);
-                if (bgImageEl && bgImageEl.complete && bgImageEl.naturalWidth > 0) {
-                    // cover-fit, matching CSS background-size: cover
-                    const ir = bgImageEl.naturalWidth / bgImageEl.naturalHeight;
-                    const cr = cssW / cssH;
-                    let dw, dh, dx, dy;
-                    if (ir > cr) { dh = cssH; dw = dh * ir; dx = (cssW - dw) / 2; dy = 0; }
-                    else { dw = cssW; dh = dw / ir; dx = 0; dy = (cssH - dh) / 2; }
-                    ctx.drawImage(bgImageEl, dx, dy, dw, dh);
-                }
-
-                // Uploaded assets, each at its own live transform
-                for (const w of assetWrapperEls()) {
-                    const imgEl = w.querySelector('img');
-                    if (!imgEl) continue;
-                    const cached = assetImgCache.get(imgEl.src);
-                    if (!cached || !cached.complete) continue;
-                    const { x, y, s } = readTransform(w);
-                    const dw = (imgEl.clientWidth || 100) * s;
-                    const dh = dw * (cached.naturalHeight / cached.naturalWidth);
-                    ctx.drawImage(cached, x, y, dw, dh);
-                }
-
-                // Character, at its live transform (fixes displacement bug)
-                if (svgElement && charImgReady) {
-                    const { x, y, s } = readTransform(characterWrapperEl);
-                    const baseW = 180, baseH = 240; // matches .character-wrapper CSS size
-                    ctx.drawImage(charImg, x, y, baseW * s, baseH * s);
-                }
-            }
-
-            try {
-                // Encode + paint the first real frame BEFORE creating the
-                // stream/recorder, so recording never starts on a blank canvas.
-                await preloadAssetImages();
-                await encodeCharacterNow();
-                await drawFrame();
-
-                const canvasStream = canvas.captureStream(30);
-
-                // Prepare an audio destination in advance so it exists even if
-                // playback hasn't started producing the activeSource yet.
-                let audioDestNode = null;
-                if (audioContext) {
-                    audioDestNode = audioContext.createMediaStreamDestination();
-                }
-
-                let mimeType = '';
-                const candidates = [
-                    'video/webm;codecs=vp9,opus',
-                    'video/webm;codecs=vp8,opus',
-                    'video/webm'
-                ];
-                for (const c of candidates) {
-                    if (MediaRecorder.isTypeSupported(c)) { mimeType = c; break; }
-                }
-                if (!mimeType) {
-                    exportStatus.innerText = "❌ Is device/browser mein video export supported format nahi mila!";
-                    exportBtn.disabled = false;
-                    return;
-                }
-
-                const mediaRecorder = new MediaRecorder(canvasStream, { mimeType });
-                let recordedChunks = [];
-
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-                };
-
-                const stopPromise = new Promise((resolve) => {
-                    mediaRecorder.onstop = resolve;
-                });
-
-                mediaRecorder.onerror = (e) => {
-                    console.error('MediaRecorder error:', e);
-                };
-
-                let isRecording = true;
-                let encodingInFlight = false;
-
-                // drawFrame() itself is synchronous/instant (just canvas ops on
-                // already-loaded images), so calling it every rAF tick is smooth.
-                // Re-encoding the character's SVG (for mouth/arm pose changes) is
-                // kicked off in parallel without blocking the draw, so it never
-                // causes frame drops — the canvas just picks up the new pose
-                // whenever encodeCharacterNow() finishes.
-                function renderLoop() {
-                    if (!isRecording) return;
-                    drawFrame();
-                    if (!encodingInFlight) {
-                        encodingInFlight = true;
-                        encodeCharacterNow().finally(() => { encodingInFlight = false; });
-                    }
-                    requestAnimationFrame(renderLoop);
-                }
-
-                // Start playback first so activeSource/gainNode exist, then
-                // route their audio into the recorder's destination.
+        function toggleFullscreenPlay() {
+            if (isPlaying) {
+                pausePlayback();
+                fsPlayBtn.innerText = '▶️ Play';
+                fsPlayHint.innerText = "Pause ho gaya.";
+            } else {
                 currentPlayheadTime = 0;
                 startPlaybackAt(0);
-                if (gainNode && audioDestNode) {
-                    gainNode.connect(audioDestNode);
-                    const audioTrack = audioDestNode.stream.getAudioTracks()[0];
-                    if (audioTrack) canvasStream.addTrack(audioTrack);
-                }
-
-                mediaRecorder.start(100); // timeslice -> periodic flush
-                exportStatus.innerText = "⏺️ Recording...";
-                renderLoop();
-
-                const totalDur = (getTotalTimelineDuration() * 1000) + 500;
-
-                await new Promise((resolve) => setTimeout(resolve, totalDur));
-
-                isRecording = false;
-                pausePlayback();
-                mediaRecorder.stop();
-                await stopPromise;
-
-                if (recordedChunks.length === 0) {
-                    exportStatus.innerText = "❌ Export failed: koi data record nahi hua. Dobara try karein.";
-                    exportBtn.disabled = false;
-                    return;
-                }
-
-                const blob = new Blob(recordedChunks, { type: mimeType });
-                const url = URL.createObjectURL(blob);
-
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `AlightAnimation_${Date.now()}.webm`;
-                document.body.appendChild(a);
-                a.click();
-
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 1000);
-
-                exportStatus.innerText = "✅ Video Downloaded Successfully!";
-            } catch (err) {
-                console.error(err);
-                exportStatus.innerText = "❌ Export failed! " + (err && err.message ? err.message : '');
-            } finally {
-                exportBtn.disabled = false;
+                fsPlayBtn.innerText = '⏸️ Pause';
+                fsPlayHint.innerText = "▶️ Playing — recording jaari rakhein.";
             }
         }
+
+        function exitFullscreenPlayback() {
+            pausePlayback();
+            window.removeEventListener('resize', sizeFullscreenStage);
+
+            // Restore the viewport exactly where it was in the editor.
+            viewport.style.width = '';
+            viewport.style.height = '';
+            viewport.style.maxWidth = '';
+            viewport.style.maxHeight = '';
+            if (fsOriginalNextSibling) {
+                fsOriginalParent.insertBefore(viewport, fsOriginalNextSibling);
+            } else if (fsOriginalParent) {
+                fsOriginalParent.appendChild(viewport);
+            }
+            fullscreenOverlay.style.display = 'none';
+        }
+
 
         function makeDraggable(element) {
             let isDragging = false;
