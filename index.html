@@ -105,7 +105,6 @@
             pointer-events: none;
         }
 
-        /* Meme Overlay Screen */
         .meme-overlay {
             position: absolute;
             top: 0;
@@ -247,6 +246,17 @@
             cursor: pointer;
         }
 
+        .btn-export {
+            background: #3742fa;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+        }
+
         .status-text {
             font-size: 0.75rem;
             color: #2ed573;
@@ -254,7 +264,6 @@
             text-align: center;
         }
 
-        /* Interactive Timeline UI */
         .timeline-container {
             background: #101115;
             border: 1px solid #282a36;
@@ -389,12 +398,10 @@
 
     <main class="workspace">
         <div id="viewport" class="viewport ratio-16-9">
-            <!-- Meme Video Stage Overlay -->
             <div id="memeOverlay" class="meme-overlay">
                 <video id="memePlayer" playsinline></video>
             </div>
 
-            <!-- Main Character -->
             <div id="characterWrapper" class="draggable-element character-wrapper selected" style="transform: translate3d(100px, 40px, 0px) scale(1);">
                 <svg viewBox="-50 -20 450 500" xmlns="http://www.w3.org/2000/svg">
                     <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
@@ -440,11 +447,11 @@
 
     <footer class="bottom-panel">
         <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('transform', event)">📐 3D Space (X,Y,Z)</button>
-            <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Sync</button>
-            <button class="tab-btn" onclick="switchTab('timeline', event)">⏱️ Timeline & Meme</button>
+            <button class="tab-btn active" onclick="switchTab('transform', event)">📐 3D Space</button>
+            <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Pitch</button>
+            <button class="tab-btn" onclick="switchTab('timeline', event)">⏱️ Timeline</button>
             <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Assets & BG</button>
-            <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Aspect Ratio</button>
+            <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Ratio & Export</button>
         </div>
 
         <div id="tab-transform" class="tab-content active">
@@ -466,20 +473,24 @@
             </div>
         </div>
 
+        <!-- Voice & Pitch Effects Control Tab -->
         <div id="tab-voice" class="tab-content">
             <div id="audioStatus" class="status-text"></div>
             <div class="control-row">
                 <label class="file-btn">
-                    🎬 Select Video from Gallery
-                    <input type="file" id="videoUpload" accept="video/*">
+                    🎬 Select Video / Audio File
+                    <input type="file" id="videoUpload" accept="video/*,audio/*">
                 </label>
+            </div>
+            <div class="control-group">
+                <div class="slider-label"><span>Voice Pitch (Speed / Tone Shift)</span><span id="pitchVal">1.0x</span></div>
+                <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
             </div>
             <div class="control-group">
                 <div class="slider-label"><span>Volume Level</span><span id="volVal">100%</span></div>
                 <input type="range" id="volSlider" min="0" max="2" step="0.1" value="1.0">
             </div>
             <div class="control-row">
-                <button id="recordBtn" class="btn-record">🎤 Record Mic</button>
                 <button id="playBtn" class="btn-play" disabled>▶️ Play Timeline</button>
             </div>
         </div>
@@ -492,7 +503,7 @@
                         <input type="file" id="memeUpload" accept="video/*" style="display:none;">
                     </label>
                     <button class="btn-tool" onclick="splitClipAtPlayhead()">✂️ Cut at Playhead</button>
-                    <button class="btn-tool danger" onclick="deleteSelectedClip()">🗑️ Delete Selected</button>
+                    <button class="btn-tool danger" onclick="deleteSelectedClip()">🗑️ Delete</button>
                 </div>
 
                 <div class="timeline-header">
@@ -512,7 +523,6 @@
             </div>
         </div>
 
-        <!-- Restored Assets & Stage Background Options -->
         <div id="tab-assets" class="tab-content">
             <div class="control-row">
                 <label class="file-btn">
@@ -528,12 +538,17 @@
             </div>
         </div>
 
+        <!-- Ratio & Video Export Option Tab -->
         <div id="tab-ratio" class="tab-content">
-            <div class="btn-grid">
+            <div class="btn-grid" style="margin-bottom: 12px;">
                 <div class="btn-opt active" onclick="setRatio('16-9', event)">16:9 YouTube</div>
                 <div class="btn-opt" onclick="setRatio('9-16', event)">9:16 Shorts</div>
                 <div class="btn-opt" onclick="setRatio('1-1', event)">1:1 Square</div>
             </div>
+            <div class="control-row">
+                <button id="exportBtn" class="btn-export" onclick="exportVideo()">💾 Export Animation Video (.webm)</button>
+            </div>
+            <div id="exportStatus" class="status-text" style="margin-top: 5px;"></div>
         </div>
     </footer>
 
@@ -545,6 +560,7 @@
         let timelineClipsData = []; 
         let selectedClipId = null;
         let currentPlayheadTime = 0; 
+        let pitchMultiplier = 1.0;
 
         let selectedElement = document.getElementById('characterWrapper');
         const viewport = document.getElementById('viewport');
@@ -569,7 +585,6 @@
         function renderTimelineUI() {
             const container = document.getElementById('timelineClips');
             container.innerHTML = '';
-            
             const totalDur = getTotalTimelineDuration();
 
             timelineClipsData.forEach((clip) => {
@@ -585,10 +600,8 @@
                     selectedClipId = clip.id;
                     renderTimelineUI();
                 };
-
                 container.appendChild(clipDiv);
             });
-
             updateTimeDisplay();
         }
 
@@ -599,7 +612,6 @@
             playhead.style.left = `${Math.min(percent, 100)}%`;
         }
 
-        // Finger Drag Seeking
         function handleTimelineSeek(e) {
             const rect = trackWrapper.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -626,23 +638,16 @@
             window.addEventListener('pointerup', onPlayheadUp);
         });
 
-        function onPlayheadMove(e) {
-            if (isDraggingPlayhead) handleTimelineSeek(e);
-        }
-
+        function onPlayheadMove(e) { if (isDraggingPlayhead) handleTimelineSeek(e); }
         function onPlayheadUp() {
             isDraggingPlayhead = false;
             window.removeEventListener('pointermove', onPlayheadMove);
             window.removeEventListener('pointerup', onPlayheadUp);
         }
 
-        // Split Clip
         function splitClipAtPlayhead() {
             if (timelineClipsData.length === 0) return;
-
-            let accumulatedTime = 0;
-            let targetIndex = -1;
-            let localCutTime = 0;
+            let accumulatedTime = 0, targetIndex = -1, localCutTime = 0;
 
             for (let i = 0; i < timelineClipsData.length; i++) {
                 const clip = timelineClipsData[i];
@@ -666,15 +671,12 @@
             }
         }
 
-        // Add Meme
         document.getElementById('memeUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const videoUrl = URL.createObjectURL(file);
             const tempVid = document.createElement('video');
             tempVid.src = videoUrl;
-
             tempVid.onloadedmetadata = () => {
                 timelineClipsData.push({
                     id: 'meme_' + Date.now(),
@@ -694,16 +696,14 @@
             renderTimelineUI();
         }
 
-        // FIX 1: Voice Video Upload & Audio Context Output Connection
         document.getElementById('videoUpload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            document.getElementById('audioStatus').innerText = "⌛ Extracting voice audio...";
+            document.getElementById('audioStatus').innerText = "⌛ Processing audio file...";
             try {
                 const fileArrayBuffer = await file.arrayBuffer();
                 if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
                 audioBuffer = await audioContext.decodeAudioData(fileArrayBuffer);
                 
                 playBtn.disabled = false;
@@ -713,54 +713,49 @@
                     duration: audioBuffer.duration
                 }];
                 renderTimelineUI();
-                document.getElementById('audioStatus').innerText = "✅ Voice extracted and ready with audio!";
+                document.getElementById('audioStatus').innerText = "✅ Audio Track Successfully Loaded!";
             } catch (err) {
-                alert("Voice extract failed!");
+                alert("Audio processing failed!");
             }
         });
 
-        // FIX 2: Stage Background Upload Working Handler
+        // Pitch Slider Control Update
+        document.getElementById('pitchSlider').addEventListener('input', (e) => {
+            pitchMultiplier = parseFloat(e.target.value);
+            document.getElementById('pitchVal').innerText = pitchMultiplier.toFixed(1) + 'x';
+            if (activeSource) {
+                activeSource.playbackRate.value = pitchMultiplier;
+            }
+        });
+
         document.getElementById('bgUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            reader.onload = function(event) {
-                viewport.style.backgroundImage = `url('${event.target.result}')`;
-            };
+            reader.onload = (event) => { viewport.style.backgroundImage = `url('${event.target.result}')`; };
             reader.readAsDataURL(file);
         });
 
-        // FIX 3: Upload Asset Image Working Handler
         document.getElementById('assetUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            reader.onload = function(event) {
+            reader.onload = (event) => {
                 const assetDiv = document.createElement('div');
                 assetDiv.className = 'draggable-element asset-wrapper';
                 assetDiv.style.transform = 'translate3d(50px, 50px, 0px) scale(1)';
-
                 const img = document.createElement('img');
                 img.src = event.target.result;
-
                 assetDiv.appendChild(img);
                 viewport.appendChild(assetDiv);
-
                 makeDraggable(assetDiv);
                 selectElement(assetDiv);
             };
             reader.readAsDataURL(file);
         });
 
-        // Playback Engine with Speaker Output
         playBtn.addEventListener('click', () => {
-            if (isPlaying) {
-                pausePlayback();
-            } else {
-                startPlaybackAt(currentPlayheadTime);
-            }
+            if (isPlaying) { pausePlayback(); } else { startPlaybackAt(currentPlayheadTime); }
         });
 
         function startPlaybackAt(timeSec) {
@@ -772,6 +767,7 @@
             if (audioBuffer) {
                 activeSource = audioContext.createBufferSource();
                 activeSource.buffer = audioBuffer;
+                activeSource.playbackRate.value = pitchMultiplier; // Apply Pitch/Speed Control
 
                 gainNode = audioContext.createGain();
                 gainNode.gain.value = parseFloat(document.getElementById('volSlider').value);
@@ -780,7 +776,6 @@
                 analyser.fftSize = 256;
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-                // CONNECT TO AUDIO DESTINATION (SPEAKERS)
                 activeSource.connect(gainNode);
                 gainNode.connect(analyser);
                 analyser.connect(audioContext.destination);
@@ -791,7 +786,6 @@
             startTime = audioContext.currentTime - timeSec;
             isPlaying = true;
             playBtn.innerText = '⏸️ Pause Timeline';
-
             requestAnimationFrame(animateTimeline);
         }
 
@@ -819,10 +813,7 @@
 
             updateTimeDisplay();
 
-            let accumulated = 0;
-            let activeClip = null;
-            let localTime = 0;
-
+            let accumulated = 0, activeClip = null, localTime = 0;
             for (let clip of timelineClipsData) {
                 if (currentPlayheadTime >= accumulated && currentPlayheadTime < accumulated + clip.duration) {
                     activeClip = clip;
@@ -846,7 +837,6 @@
                     memePlayer.pause();
                 }
 
-                // Lip Sync Animation using Real-time Analyser Data
                 if (analyser && dataArray) {
                     analyser.getByteFrequencyData(dataArray);
                     let sum = dataArray.reduce((a, b) => a + b, 0);
@@ -867,7 +857,66 @@
             document.getElementById('left-arm').style.transform = 'rotate(0deg)';
         }
 
-        // Draggable System for Character & Custom Assets
+        // Direct Video Recording and Export Feature
+        async function exportVideo() {
+            const exportStatus = document.getElementById('exportStatus');
+            if (timelineClipsData.length === 0) {
+                alert("Pehle timeline mein koi audio ya clip add karein!");
+                return;
+            }
+
+            exportStatus.innerText = "⏳ Recording video stream...";
+            
+            try {
+                // Capture viewport stream using HTML2Canvas or standard MediaStream
+                const stream = viewport.captureStream ? viewport.captureStream(30) : null;
+                if (!stream) {
+                    alert("Aapka browser viewport video recording support nahi karta!");
+                    exportStatus.innerText = "";
+                    return;
+                }
+
+                const options = { mimeType: 'video/webm;codecs=vp9' };
+                const mediaRecorder = new MediaRecorder(stream, options);
+                let recordedChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'AlightAnimationStudio.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }, 100);
+                    exportStatus.innerText = "✅ Video Exported Successfully!";
+                };
+
+                // Start full playback while recording
+                mediaRecorder.start();
+                currentPlayheadTime = 0;
+                startPlaybackAt(0);
+
+                const totalDur = getTotalTimelineDuration() * 1000;
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    pausePlayback();
+                }, totalDur + 500);
+
+            } catch (err) {
+                exportStatus.innerText = "❌ Export failed!";
+                console.error(err);
+            }
+        }
+
         function makeDraggable(element) {
             let isDragging = false;
             let startX, startY, currentX = 100, currentY = 40, currentZ = 0, currentScale = 1;
@@ -875,28 +924,18 @@
             element.addEventListener('pointerdown', (e) => {
                 isDragging = true;
                 selectElement(element);
-
                 const coords = getTransformValues(element);
-                currentX = coords.x;
-                currentY = coords.y;
-                currentZ = coords.z;
-                currentScale = coords.s;
-
+                currentX = coords.x; currentY = coords.y; currentZ = coords.z; currentScale = coords.s;
                 startX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
                 startY = (e.touches ? e.touches[0].clientY : e.clientY) - currentY;
-
                 window.addEventListener('pointermove', onPointerMove);
                 window.addEventListener('pointerup', onPointerUp);
             });
 
             function onPointerMove(e) {
                 if (!isDragging) return;
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-                currentX = clientX - startX;
-                currentY = clientY - startY;
-
+                currentX = (e.touches ? e.touches[0].clientX : e.clientX) - startX;
+                currentY = (e.touches ? e.touches[0].clientY : e.clientY) - startY;
                 element.style.transform = `translate3d(${currentX}px, ${currentY}px, ${currentZ}px) scale(${currentScale})`;
             }
 
@@ -927,8 +966,7 @@
 
         function applyTransformFromSliders() {
             if(!selectedElement) return;
-            const x = posXSlider.value, y = posYSlider.value, z = posZSlider.value, s = scaleSlider.value;
-            selectedElement.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${s})`;
+            selectedElement.style.transform = `translate3d(${posXSlider.value}px, ${posYSlider.value}px, ${posZSlider.value}px) scale(${scaleSlider.value})`;
         }
 
         document.getElementById('posXSlider').oninput = applyTransformFromSliders;
