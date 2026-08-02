@@ -441,6 +441,8 @@
         }
 
         #mouth { transform-origin: center center; transform-box: fill-box; }
+        #waist { transform-origin: 175px 270px; }
+        #neck { transform-origin: 175px 215px; }
         #left-arm { transform-origin: 110px 215px; }
         #left-forearm { transform-origin: 65px 255px; }
         #right-arm { transform-origin: 240px 215px; }
@@ -474,68 +476,110 @@
 
             <div id="characterWrapper" class="draggable-element character-wrapper selected" style="transform: translate3d(100px, 40px, 0px) scale(1);">
                 <svg viewBox="-50 -20 450 500" xmlns="http://www.w3.org/2000/svg">
-                    <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                    <defs>
+                        <linearGradient id="skinShade" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#ffe0bd"/>
+                            <stop offset="55%" stop-color="#fcd7b6"/>
+                            <stop offset="100%" stop-color="#e8b892"/>
+                        </linearGradient>
+                        <linearGradient id="shirtShade" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#ffffff"/>
+                            <stop offset="100%" stop-color="#d8dce2"/>
+                        </linearGradient>
+                        <linearGradient id="shortsShade" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#c7b892"/>
+                            <stop offset="100%" stop-color="#a3946e"/>
+                        </linearGradient>
+                        <linearGradient id="hairShade" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#2a1a3d"/>
+                            <stop offset="100%" stop-color="#160c22"/>
+                        </linearGradient>
+                        <radialGradient id="cheekBlush" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#ff8a80" stop-opacity="0.55"/>
+                            <stop offset="100%" stop-color="#ff8a80" stop-opacity="0"/>
+                        </radialGradient>
+                    </defs>
 
-                        <!-- LEFT LEG: hip -> thigh -> knee -> shin -> foot -->
-                        <g id="left-leg">
-                            <path d="M 128 330 L 118 375" fill="none" stroke-width="22" stroke="#fcd7b6" />
-                            <path d="M 128 330 L 118 375" fill="none" stroke-width="4" stroke="#000" />
-                            <g id="left-shin">
-                                <path d="M 118 375 L 112 415" fill="none" stroke-width="19" stroke="#fcd7b6" />
-                                <path d="M 118 375 L 112 415" fill="none" stroke-width="4" stroke="#000" />
-                                <ellipse cx="108" cy="420" rx="18" ry="8" fill="#333" />
+                    <g id="body" stroke="#1a1108" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+
+                        <!-- ===== WAIST / HIPS (root of legs) ===== -->
+                        <g id="waist">
+
+                            <!-- LEFT LEG: hip -> thigh -> knee -> shin -> foot -->
+                            <g id="left-leg">
+                                <path d="M 128 330 L 118 375" fill="none" stroke-width="24" stroke="url(#shortsShade)" stroke-dasharray="0" />
+                                <path d="M 128 330 L 118 375" fill="none" stroke-width="3.5" stroke="#1a1108" />
+                                <g id="left-shin">
+                                    <path d="M 118 375 L 112 415" fill="none" stroke-width="19" stroke="url(#skinShade)" />
+                                    <path d="M 118 375 L 112 415" fill="none" stroke-width="3.5" stroke="#1a1108" />
+                                    <path d="M 96 418 Q 108 410 124 418 Q 122 428 108 428 Q 96 428 96 418 Z" fill="#3d3d3d" stroke="#1a1108" stroke-width="3"/>
+                                </g>
                             </g>
-                        </g>
 
-                        <!-- RIGHT LEG: hip -> thigh -> knee -> shin -> foot -->
-                        <g id="right-leg">
-                            <path d="M 222 330 L 232 375" fill="none" stroke-width="22" stroke="#fcd7b6" />
-                            <path d="M 222 330 L 232 375" fill="none" stroke-width="4" stroke="#000" />
-                            <g id="right-shin">
-                                <path d="M 232 375 L 238 415" fill="none" stroke-width="19" stroke="#fcd7b6" />
-                                <path d="M 232 375 L 238 415" fill="none" stroke-width="4" stroke="#000" />
-                                <ellipse cx="242" cy="420" rx="18" ry="8" fill="#333" />
+                            <!-- RIGHT LEG: hip -> thigh -> knee -> shin -> foot -->
+                            <g id="right-leg">
+                                <path d="M 222 330 L 232 375" fill="none" stroke-width="24" stroke="url(#shortsShade)" />
+                                <path d="M 222 330 L 232 375" fill="none" stroke-width="3.5" stroke="#1a1108" />
+                                <g id="right-shin">
+                                    <path d="M 232 375 L 238 415" fill="none" stroke-width="19" stroke="url(#skinShade)" />
+                                    <path d="M 232 375 L 238 415" fill="none" stroke-width="3.5" stroke="#1a1108" />
+                                    <path d="M 226 418 Q 238 410 254 418 Q 252 428 238 428 Q 226 428 226 418 Z" fill="#3d3d3d" stroke="#1a1108" stroke-width="3"/>
+                                </g>
                             </g>
-                        </g>
 
-                        <path d="M 110 210 L 240 210 L 230 330 L 120 330 Z" fill="#ffffff" />
-                        <rect x="117" y="270" width="115" height="35" fill="#a03c51" stroke="#000" stroke-width="3" />
+                            <!-- TORSO -->
+                            <path d="M 110 210 L 240 210 L 230 330 L 120 330 Z" fill="url(#shirtShade)" />
+                            <path d="M 118 218 L 232 218" stroke="#c3c8d1" stroke-width="2" opacity="0.6" fill="none"/>
+                            <rect x="117" y="270" width="115" height="35" fill="#8c3245" stroke="#1a1108" stroke-width="3" />
+                            <path d="M 120 273 L 229 273" stroke="#a03c51" stroke-width="2" opacity="0.7" fill="none"/>
 
-                        <!-- LEFT ARM: shoulder -> upper arm -> elbow -> forearm -> hand -->
-                        <g id="left-arm">
-                            <path d="M 110 215 L 65 255" fill="none" stroke-width="20" stroke="#ffffff" />
-                            <path d="M 110 215 L 65 255" fill="none" stroke-width="4" stroke="#000000" />
-                            <g id="left-forearm">
-                                <path d="M 65 255 L 25 250" fill="none" stroke-width="18" stroke="#fcd7b6" />
-                                <path d="M 65 255 L 25 250" fill="none" stroke-width="4" stroke="#000000" />
-                                <path d="M 25 250 C 10 240, 5 260, 15 270 C 5 275, 10 285, 25 275" fill="#fcd7b6" stroke="#000" stroke-width="3"/>
+                            <!-- LEFT ARM: shoulder -> upper arm -> elbow -> forearm -> hand -->
+                            <g id="left-arm">
+                                <path d="M 110 215 L 65 255" fill="none" stroke-width="21" stroke="url(#shirtShade)" />
+                                <path d="M 110 215 L 65 255" fill="none" stroke-width="3.5" stroke="#1a1108" />
+                                <g id="left-forearm">
+                                    <path d="M 65 255 L 25 250" fill="none" stroke-width="18" stroke="url(#skinShade)" />
+                                    <path d="M 65 255 L 25 250" fill="none" stroke-width="3.5" stroke="#1a1108" />
+                                    <path d="M 25 250 C 10 240, 5 260, 15 270 C 5 275, 10 285, 25 275" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
+                                </g>
                             </g>
-                        </g>
 
-                        <!-- RIGHT ARM: shoulder -> upper arm -> elbow -> forearm -> hand -->
-                        <g id="right-arm">
-                            <path d="M 240 215 L 278 248" fill="none" stroke-width="20" stroke="#ffffff" />
-                            <path d="M 240 215 L 278 248" fill="none" stroke-width="4" stroke="#000000" />
-                            <g id="right-forearm">
-                                <path d="M 278 248 L 290 275" fill="none" stroke-width="18" stroke="#fcd7b6" />
-                                <path d="M 278 248 L 290 275" fill="none" stroke-width="4" stroke="#000000" />
-                                <circle cx="290" cy="275" r="12" fill="#fcd7b6" stroke="#000" stroke-width="3"/>
+                            <!-- RIGHT ARM: shoulder -> upper arm -> elbow -> forearm -> hand -->
+                            <g id="right-arm">
+                                <path d="M 240 215 L 278 248" fill="none" stroke-width="21" stroke="url(#shirtShade)" />
+                                <path d="M 240 215 L 278 248" fill="none" stroke-width="3.5" stroke="#1a1108" />
+                                <g id="right-forearm">
+                                    <path d="M 278 248 L 290 275" fill="none" stroke-width="18" stroke="url(#skinShade)" />
+                                    <path d="M 278 248 L 290 275" fill="none" stroke-width="3.5" stroke="#1a1108" />
+                                    <circle cx="290" cy="275" r="12" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
+                                </g>
                             </g>
-                        </g>
 
-                        <rect x="155" y="185" width="40" height="30" fill="#fcd7b6" stroke="#000" stroke-width="4" />
-                        <g id="head">
-                            <path d="M 100 130 C 95 200, 255 200, 250 130 C 255 70, 95 70, 100 130 Z" fill="#fcd7b6" />
-                            <g id="eyes">
-                                <ellipse cx="135" cy="120" rx="22" ry="16" fill="#fff" />
-                                <circle cx="140" cy="120" r="7" fill="#000" />
-                                <path d="M 110 100 Q 135 90 160 105" fill="none" stroke="#000" stroke-width="4" />
-                                <ellipse cx="215" cy="120" rx="22" ry="16" fill="#fff" />
-                                <circle cx="210" cy="120" r="7" fill="#000" />
-                                <path d="M 190 105 Q 215 90 240 100" fill="none" stroke="#000" stroke-width="4" />
+                            <!-- ===== NECK (connects waist/torso to head) ===== -->
+                            <g id="neck">
+                                <rect x="155" y="185" width="40" height="30" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3.5" />
+                                <path d="M 158 192 L 192 192" stroke="#d9a878" stroke-width="2" opacity="0.6" fill="none"/>
+
+                                <g id="head">
+                                    <path d="M 100 130 C 95 200, 255 200, 250 130 C 255 70, 95 70, 100 130 Z" fill="url(#skinShade)" />
+                                    <ellipse cx="130" cy="150" rx="16" ry="10" fill="url(#cheekBlush)"/>
+                                    <ellipse cx="220" cy="150" rx="16" ry="10" fill="url(#cheekBlush)"/>
+                                    <g id="eyes">
+                                        <ellipse cx="135" cy="120" rx="22" ry="16" fill="#fff" />
+                                        <circle cx="140" cy="120" r="7" fill="#1a1108" />
+                                        <circle cx="143" cy="116" r="2.2" fill="#fff" />
+                                        <path d="M 110 100 Q 135 90 160 105" fill="none" stroke="#1a1108" stroke-width="3.5" />
+                                        <ellipse cx="215" cy="120" rx="22" ry="16" fill="#fff" />
+                                        <circle cx="210" cy="120" r="7" fill="#1a1108" />
+                                        <circle cx="213" cy="116" r="2.2" fill="#fff" />
+                                        <path d="M 190 105 Q 215 90 240 100" fill="none" stroke="#1a1108" stroke-width="3.5" />
+                                    </g>
+                                    <path d="M 90 120 C 70 80, 90 30, 140 30 C 160 10, 200 10, 220 30 C 260 20, 280 70, 260 120 C 240 100, 240 70, 210 60 C 180 50, 130 60, 90 120 Z" fill="url(#hairShade)" />
+                                    <path d="M 105 65 Q 130 40 160 55" stroke="#3d2a5c" stroke-width="2.5" fill="none" opacity="0.7"/>
+                                    <path d="M 190 55 Q 220 42 245 68" stroke="#3d2a5c" stroke-width="2.5" fill="none" opacity="0.7"/>
+                                    <ellipse id="mouth" cx="175" cy="165" rx="16" ry="4" fill="#7a2530" />
+                                </g>
                             </g>
-                            <path d="M 90 120 C 70 80, 90 30, 140 30 C 160 10, 200 10, 220 30 C 260 20, 280 70, 260 120 C 240 100, 240 70, 210 60 C 180 50, 130 60, 90 120 Z" fill="#801818" />
-                            <ellipse id="mouth" cx="175" cy="165" rx="16" ry="4" fill="#801818" />
                         </g>
                     </g>
                 </svg>
@@ -557,6 +601,8 @@
             <div class="section-label">Select Body Part</div>
             <div class="part-btn-row" id="partChips">
                 <div class="part-chip active" data-part="whole">🧍 Whole Body</div>
+                <div class="part-chip" data-part="waist">🩳 Waist / Kamar</div>
+                <div class="part-chip" data-part="neck">🦒 Neck / Gardan</div>
                 <div class="part-chip" data-part="head">😀 Head</div>
                 <div class="part-chip" data-part="left-arm">💪 Left Upper Arm</div>
                 <div class="part-chip" data-part="left-forearm">🤚 Left Forearm</div>
@@ -567,6 +613,16 @@
                 <div class="part-chip" data-part="right-leg">🦵 Right Thigh</div>
                 <div class="part-chip" data-part="right-shin">🦶 Right Shin/Knee</div>
                 <div class="part-chip" data-part="mouth">👄 Mouth</div>
+            </div>
+
+            <div class="section-label">Pose Presets</div>
+            <div class="btn-grid">
+                <div class="btn-opt" onclick="applyPose('stand')">🧍 Stand</div>
+                <div class="btn-opt" onclick="applyPose('sit')">🪑 Sit / Baitho</div>
+                <div class="btn-opt" onclick="applyPose('run')">🏃 Run / Daudo</div>
+                <div class="btn-opt" onclick="applyPose('walk')">🚶 Walk</div>
+                <div class="btn-opt" onclick="applyPose('jump')">🤾 Jump</div>
+                <div class="btn-opt" onclick="applyPose('wave')">👋 Wave</div>
             </div>
 
             <div id="wholeBodyControls">
@@ -727,6 +783,8 @@
 
         // Per-part rig state: rotation (deg) + joint position offset (px)
         let partRig = {
+            'waist':         { rot: 0, x: 0, y: 0 },
+            'neck':          { rot: 0, x: 0, y: 0 },
             'head':          { rot: 0, x: 0, y: 0 },
             'left-arm':      { rot: 0, x: 0, y: 0 },
             'left-forearm':  { rot: 0, x: 0, y: 0 },
@@ -780,6 +838,8 @@
         const partYVal = document.getElementById('partYVal');
 
         const partNames = {
+            'waist': '🩳 Waist / Kamar',
+            'neck': '🦒 Neck / Gardan',
             'head': '😀 Head',
             'left-arm': '💪 Left Upper Arm',
             'left-forearm': '🤚 Left Forearm',
@@ -891,6 +951,74 @@
                 partRotSlider.value = 0; partRotVal.innerText = '0°';
                 partXSlider.value = 0; partXVal.innerText = '0px';
                 partYSlider.value = 0; partYVal.innerText = '0px';
+            }
+        }
+
+        // ============ POSE PRESETS ============
+        // Each preset defines rot/x/y for the joints that matter; anything not listed goes to 0.
+        const posePresets = {
+            stand: {},
+            sit: {
+                'waist':     { rot: 0,   x: 0,  y: 55 },
+                'left-leg':  { rot: 80,  x: 0,  y: 0 },
+                'left-shin': { rot: -75, x: 0,  y: 0 },
+                'right-leg': { rot: 80,  x: 0,  y: 0 },
+                'right-shin':{ rot: -75, x: 0,  y: 0 },
+                'left-arm':  { rot: 20,  x: 0,  y: 0 },
+                'right-arm': { rot: -20, x: 0,  y: 0 }
+            },
+            run: {
+                'waist':         { rot: 8,   x: 0, y: 0 },
+                'neck':          { rot: -5,  x: 0, y: 0 },
+                'left-leg':      { rot: -35, x: 0, y: 0 },
+                'left-shin':     { rot: 55,  x: 0, y: 0 },
+                'right-leg':     { rot: 45,  x: 0, y: 0 },
+                'right-shin':    { rot: -60, x: 0, y: 0 },
+                'left-arm':      { rot: 45,  x: 0, y: 0 },
+                'left-forearm':  { rot: -40, x: 0, y: 0 },
+                'right-arm':     { rot: -45, x: 0, y: 0 },
+                'right-forearm': { rot: 40,  x: 0, y: 0 }
+            },
+            walk: {
+                'left-leg':      { rot: -20, x: 0, y: 0 },
+                'left-shin':     { rot: 15,  x: 0, y: 0 },
+                'right-leg':     { rot: 20,  x: 0, y: 0 },
+                'right-shin':    { rot: -10, x: 0, y: 0 },
+                'left-arm':      { rot: 25,  x: 0, y: 0 },
+                'right-arm':     { rot: -25, x: 0, y: 0 }
+            },
+            jump: {
+                'waist':         { rot: 0,   x: 0, y: -15 },
+                'left-leg':      { rot: -30, x: 0, y: 0 },
+                'left-shin':     { rot: 45,  x: 0, y: 0 },
+                'right-leg':     { rot: -30, x: 0, y: 0 },
+                'right-shin':    { rot: 45,  x: 0, y: 0 },
+                'left-arm':      { rot: -70, x: 0, y: 0 },
+                'right-arm':     { rot: 70,  x: 0, y: 0 },
+                'left-forearm':  { rot: -20, x: 0, y: 0 },
+                'right-forearm': { rot: 20,  x: 0, y: 0 }
+            },
+            wave: {
+                'right-arm':     { rot: -140, x: 0, y: 0 },
+                'right-forearm': { rot: 40,   x: 0, y: 0 },
+                'head':          { rot: -8,   x: 0, y: 0 }
+            }
+        };
+
+        function applyPose(poseName) {
+            const preset = posePresets[poseName];
+            if (!preset) return;
+            Object.keys(partRig).forEach(p => {
+                const target = preset[p] || { rot: 0, x: 0, y: 0 };
+                partRig[p] = { rot: target.rot || 0, x: target.x || 0, y: target.y || 0 };
+                applyPartTransform(p);
+            });
+            // Refresh sliders if a non-whole part is currently selected
+            if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth' && partRig[currentSelectedPart]) {
+                const rig = partRig[currentSelectedPart];
+                partRotSlider.value = rig.rot; partRotVal.innerText = `${rig.rot}°`;
+                partXSlider.value = rig.x; partXVal.innerText = `${rig.x}px`;
+                partYSlider.value = rig.y; partYVal.innerText = `${rig.y}px`;
             }
         }
 
