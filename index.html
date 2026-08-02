@@ -921,6 +921,7 @@
         const fsPlayHint = document.getElementById('fsPlayHint');
         let fsOriginalParent = null;
         let fsOriginalNextSibling = null;
+        let fsPreviouslySelected = null;
 
         function sizeFullscreenStage() {
             const cls = viewport.className; // e.g. "viewport ratio-16-9"
@@ -940,6 +941,17 @@
                 return;
             }
 
+            // Hide the editor's "selected" outline (the dashed red box) before
+            // going fullscreen, since it's a purely editing-time indicator and
+            // should never show up in a recording. We remember which elements
+            // had it so it can be restored exactly on exit.
+            fsPreviouslySelected = Array.from(document.querySelectorAll('.draggable-element.selected'));
+            fsPreviouslySelected.forEach(el => el.classList.remove('selected'));
+
+            // Disable dragging/selecting on-stage while fullscreen so an
+            // accidental tap during recording can't select an element and
+            // bring the dashed outline back mid-recording.
+            viewport.style.pointerEvents = 'none';
             // Move the actual live viewport (with character, assets,
             // background, meme overlay — everything) into the fullscreen
             // stage. We remember exactly where it came from so Exit can put
@@ -988,6 +1000,13 @@
                 fsOriginalParent.appendChild(viewport);
             }
             fullscreenOverlay.style.display = 'none';
+            viewport.style.pointerEvents = '';
+
+            // Bring back the selection outline for editing.
+            if (fsPreviouslySelected) {
+                fsPreviouslySelected.forEach(el => el.classList.add('selected'));
+                fsPreviouslySelected = null;
+            }
         }
 
 
