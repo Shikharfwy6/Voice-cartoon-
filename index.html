@@ -454,6 +454,20 @@
         #head { transform-origin: 175px 130px; }
         #eyes { transform-origin: center center; transform-box: fill-box; }
 
+        /* Side profile view joints */
+        #smouth { transform-origin: center center; transform-box: fill-box; }
+        #swaist { transform-origin: 180px 270px; }
+        #sneck { transform-origin: 181px 215px; }
+        #shead { transform-origin: 181px 130px; }
+        #s-near-arm { transform-origin: 195px 215px; }
+        #s-near-forearm { transform-origin: 215px 255px; }
+        #s-far-arm { transform-origin: 178px 215px; }
+        #s-far-forearm { transform-origin: 190px 258px; }
+        #s-near-leg { transform-origin: 188px 330px; }
+        #s-near-shin { transform-origin: 195px 375px; }
+        #s-far-leg { transform-origin: 172px 330px; }
+        #s-far-shin { transform-origin: 168px 375px; }
+
         .joint-active { cursor: grab; }
         .joint-active:active { cursor: grabbing; }
         .joint-active > path, .joint-active > ellipse, .joint-active > circle {
@@ -480,27 +494,49 @@
                         <linearGradient id="skinShade" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#ffe0bd"/>
                             <stop offset="55%" stop-color="#fcd7b6"/>
-                            <stop offset="100%" stop-color="#e8b892"/>
+                            <stop offset="100%" stop-color="#c98f61"/>
                         </linearGradient>
                         <linearGradient id="shirtShade" x1="0%" y1="0%" x2="0%" y2="100%">
                             <stop offset="0%" stop-color="#ffffff"/>
-                            <stop offset="100%" stop-color="#d8dce2"/>
+                            <stop offset="100%" stop-color="#b7bcc6"/>
                         </linearGradient>
                         <linearGradient id="shortsShade" x1="0%" y1="0%" x2="0%" y2="100%">
                             <stop offset="0%" stop-color="#c7b892"/>
-                            <stop offset="100%" stop-color="#a3946e"/>
+                            <stop offset="100%" stop-color="#8a7c58"/>
                         </linearGradient>
                         <linearGradient id="hairShade" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stop-color="#2a1a3d"/>
-                            <stop offset="100%" stop-color="#160c22"/>
+                            <stop offset="0%" stop-color="#3a2652"/>
+                            <stop offset="100%" stop-color="#100815"/>
                         </linearGradient>
                         <radialGradient id="cheekBlush" cx="50%" cy="50%" r="50%">
                             <stop offset="0%" stop-color="#ff8a80" stop-opacity="0.55"/>
                             <stop offset="100%" stop-color="#ff8a80" stop-opacity="0"/>
                         </radialGradient>
+                        <radialGradient id="headShade" cx="35%" cy="30%" r="75%">
+                            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+                            <stop offset="45%" stop-color="#ffffff" stop-opacity="0"/>
+                            <stop offset="100%" stop-color="#5c3a1e" stop-opacity="0.35"/>
+                        </radialGradient>
+                        <linearGradient id="limbShadeV" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#000000" stop-opacity="0.28"/>
+                            <stop offset="18%" stop-color="#000000" stop-opacity="0"/>
+                            <stop offset="82%" stop-color="#000000" stop-opacity="0"/>
+                            <stop offset="100%" stop-color="#000000" stop-opacity="0.28"/>
+                        </linearGradient>
+                        <filter id="dropShadow" x="-40%" y="-40%" width="180%" height="180%">
+                            <feDropShadow dx="6" dy="10" stdDeviation="8" flood-color="#000000" flood-opacity="0.45"/>
+                        </filter>
+                        <filter id="softBevel" x="-30%" y="-30%" width="160%" height="160%">
+                            <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+                            <feOffset in="blur" dx="0" dy="2" result="offsetBlur"/>
+                            <feComposite in="SourceGraphic" in2="offsetBlur" operator="over"/>
+                        </filter>
                     </defs>
 
-                    <g id="body" stroke="#1a1108" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                    <g id="frontView">
+                    <ellipse id="groundShadow" cx="175" cy="428" rx="90" ry="14" fill="#000000" opacity="0.32"/>
+
+                    <g id="body" stroke="#1a1108" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#dropShadow)">
 
                         <!-- ===== WAIST / HIPS (root of legs) ===== -->
                         <g id="waist">
@@ -529,8 +565,10 @@
 
                             <!-- TORSO -->
                             <path d="M 110 210 L 240 210 L 230 330 L 120 330 Z" fill="url(#shirtShade)" />
+                            <path d="M 110 210 L 240 210 L 230 330 L 120 330 Z" fill="url(#limbShadeV)" />
                             <path d="M 118 218 L 232 218" stroke="#c3c8d1" stroke-width="2" opacity="0.6" fill="none"/>
                             <rect x="117" y="270" width="115" height="35" fill="#8c3245" stroke="#1a1108" stroke-width="3" />
+                            <rect x="117" y="270" width="115" height="35" fill="url(#limbShadeV)" />
                             <path d="M 120 273 L 229 273" stroke="#a03c51" stroke-width="2" opacity="0.7" fill="none"/>
 
                             <!-- LEFT ARM: shoulder -> upper arm -> elbow -> forearm -> hand -->
@@ -562,6 +600,7 @@
 
                                 <g id="head">
                                     <path d="M 100 130 C 95 200, 255 200, 250 130 C 255 70, 95 70, 100 130 Z" fill="url(#skinShade)" />
+                                    <path d="M 100 130 C 95 200, 255 200, 250 130 C 255 70, 95 70, 100 130 Z" fill="url(#headShade)" />
                                     <ellipse cx="130" cy="150" rx="16" ry="10" fill="url(#cheekBlush)"/>
                                     <ellipse cx="220" cy="150" rx="16" ry="10" fill="url(#cheekBlush)"/>
                                     <g id="eyes">
@@ -582,6 +621,98 @@
                             </g>
                         </g>
                     </g>
+                    </g>
+
+                    <!-- ===== SIDE PROFILE VIEW (for walk/run cycles) — hidden by default ===== -->
+                    <g id="sideView" style="display:none;">
+                        <ellipse cx="175" cy="428" rx="70" ry="13" fill="#000000" opacity="0.32"/>
+
+                        <g id="sbody" stroke="#1a1108" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#dropShadow)">
+                            <g id="swaist">
+
+                                <!-- FAR LEG (drawn first so it sits behind the near leg) -->
+                                <g id="s-far-leg">
+                                    <path d="M 172 330 L 168 375" fill="none" stroke-width="22" stroke="url(#shortsShade)"/>
+                                    <path d="M 172 330 L 168 375" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                    <g id="s-far-shin">
+                                        <path d="M 168 375 L 160 415" fill="none" stroke-width="17" stroke="url(#skinShade)"/>
+                                        <path d="M 168 375 L 160 415" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                        <path d="M 140 415 Q 160 406 182 415 L 182 424 Q 160 430 140 424 Z" fill="#2b2b2b" stroke="#1a1108" stroke-width="3"/>
+                                    </g>
+                                </g>
+
+                                <!-- FAR ARM (behind torso) -->
+                                <g id="s-far-arm">
+                                    <path d="M 178 215 L 190 258" fill="none" stroke-width="19" stroke="url(#shirtShade)"/>
+                                    <path d="M 178 215 L 190 258" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                    <g id="s-far-forearm">
+                                        <path d="M 190 258 L 185 288" fill="none" stroke-width="16" stroke="url(#skinShade)"/>
+                                        <path d="M 190 258 L 185 288" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                        <circle cx="185" cy="291" r="10" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
+                                    </g>
+                                </g>
+
+                                <!-- TORSO (side silhouette) -->
+                                <path d="M 155 210 L 205 210 L 200 330 L 160 330 Z" fill="url(#shirtShade)"/>
+                                <path d="M 155 210 L 205 210 L 200 330 L 160 330 Z" fill="url(#limbShadeV)"/>
+                                <rect x="158" y="270" width="44" height="35" fill="#8c3245" stroke="#1a1108" stroke-width="3"/>
+                                <rect x="158" y="270" width="44" height="35" fill="url(#limbShadeV)"/>
+
+                                <!-- NEAR LEG (front, on top) -->
+                                <g id="s-near-leg">
+                                    <path d="M 188 330 L 195 375" fill="none" stroke-width="24" stroke="url(#shortsShade)"/>
+                                    <path d="M 188 330 L 195 375" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                    <g id="s-near-shin">
+                                        <path d="M 195 375 L 205 415" fill="none" stroke-width="19" stroke="url(#skinShade)"/>
+                                        <path d="M 195 375 L 205 415" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                        <path d="M 178 415 Q 205 404 232 415 L 232 426 Q 205 433 178 426 Z" fill="#3d3d3d" stroke="#1a1108" stroke-width="3"/>
+                                    </g>
+                                </g>
+
+                                <!-- NEAR ARM (front, on top) -->
+                                <g id="s-near-arm">
+                                    <path d="M 195 215 L 215 255" fill="none" stroke-width="21" stroke="url(#shirtShade)"/>
+                                    <path d="M 195 215 L 215 255" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                    <g id="s-near-forearm">
+                                        <path d="M 215 255 L 220 288" fill="none" stroke-width="18" stroke="url(#skinShade)"/>
+                                        <path d="M 215 255 L 220 288" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                        <circle cx="220" cy="291" r="12" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
+                                    </g>
+                                </g>
+
+                                <!-- NECK + HEAD (profile) -->
+                                <g id="sneck">
+                                    <rect x="168" y="185" width="26" height="30" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3.5"/>
+
+                                    <g id="shead">
+                                        <!-- profile skull + jaw + nose silhouette -->
+                                        <path d="M 145 130 C 140 165, 150 195, 178 200 C 200 198, 218 185, 222 160 C 226 138, 218 115, 222 100 C 224 80, 205 65, 178 65 C 152 65, 140 90, 145 130 Z"
+                                              fill="url(#skinShade)"/>
+                                        <path d="M 145 130 C 140 165, 150 195, 178 200 C 200 198, 218 185, 222 160 C 226 138, 218 115, 222 100 C 224 80, 205 65, 178 65 C 152 65, 140 90, 145 130 Z"
+                                              fill="url(#headShade)"/>
+                                        <!-- nose bump -->
+                                        <path d="M 220 128 Q 232 134 224 146" fill="none" stroke="#1a1108" stroke-width="3.5"/>
+                                        <ellipse cx="200" cy="150" rx="12" ry="8" fill="url(#cheekBlush)"/>
+
+                                        <!-- eye (single, profile) -->
+                                        <ellipse cx="198" cy="118" rx="14" ry="12" fill="#fff"/>
+                                        <circle cx="203" cy="119" r="6" fill="#1a1108"/>
+                                        <circle cx="205" cy="116" r="1.8" fill="#fff"/>
+                                        <path d="M 185 105 Q 200 96 214 104" fill="none" stroke="#1a1108" stroke-width="3.5"/>
+
+                                        <!-- ear -->
+                                        <ellipse cx="158" cy="128" rx="9" ry="13" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
+
+                                        <!-- hair (side silhouette, swept back) -->
+                                        <path d="M 138 128 C 132 95, 140 55, 178 50 C 205 48, 228 65, 224 95 C 222 80, 205 68, 185 68 C 165 68, 150 85, 148 110 C 165 100, 190 100, 205 108 C 195 92, 205 78, 225 90 C 235 100, 230 118, 222 128 C 226 108, 210 95, 190 100 C 205 92, 200 80, 182 82 C 160 84, 148 105, 150 128 Z"
+                                              fill="url(#hairShade)"/>
+
+                                        <ellipse id="smouth" cx="210" cy="158" rx="4" ry="12" fill="#7a2530"/>
+                                    </g>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
                 </svg>
             </div>
         </div>
@@ -598,6 +729,13 @@
 
         <!-- RIG / PART-BY-PART CONTROL TAB -->
         <div id="tab-rig" class="tab-content active">
+            <div class="section-label">Character View</div>
+            <div class="btn-grid" style="grid-template-columns: repeat(2,1fr); margin-bottom: 12px;">
+                <div class="btn-opt active" id="viewFrontBtn" onclick="setCharView('front')">🧍 Front View</div>
+                <div class="btn-opt" id="viewSideBtn" onclick="setCharView('side')">🚶 Side Profile</div>
+            </div>
+
+            <div id="frontPartsBlock">
             <div class="section-label">Select Body Part</div>
             <div class="part-btn-row" id="partChips">
                 <div class="part-chip active" data-part="whole">🧍 Whole Body</div>
@@ -623,6 +761,36 @@
                 <div class="btn-opt" onclick="applyPose('walk')">🚶 Walk</div>
                 <div class="btn-opt" onclick="applyPose('jump')">🤾 Jump</div>
                 <div class="btn-opt" onclick="applyPose('wave')">👋 Wave</div>
+            </div>
+            </div>
+
+            <div id="sidePartsBlock" style="display:none;">
+                <div class="section-label">Select Body Part (Side Profile)</div>
+                <div class="part-btn-row" id="sidePartChips">
+                    <div class="part-chip active" data-spart="whole">🧍 Whole Body</div>
+                    <div class="part-chip" data-spart="swaist">🩳 Waist / Kamar</div>
+                    <div class="part-chip" data-spart="sneck">🦒 Neck / Gardan</div>
+                    <div class="part-chip" data-spart="shead">😀 Head</div>
+                    <div class="part-chip" data-spart="s-near-arm">💪 Front Arm</div>
+                    <div class="part-chip" data-spart="s-near-forearm">🤚 Front Forearm</div>
+                    <div class="part-chip" data-spart="s-far-arm">💪 Back Arm</div>
+                    <div class="part-chip" data-spart="s-far-forearm">🤚 Back Forearm</div>
+                    <div class="part-chip" data-spart="s-near-leg">🦵 Front Thigh</div>
+                    <div class="part-chip" data-spart="s-near-shin">🦶 Front Shin/Knee</div>
+                    <div class="part-chip" data-spart="s-far-leg">🦵 Back Thigh</div>
+                    <div class="part-chip" data-spart="s-far-shin">🦶 Back Shin/Knee</div>
+                </div>
+
+                <div class="section-label">Walk / Run Cycle</div>
+                <div class="btn-grid">
+                    <div class="btn-opt" onclick="applySidePose('sideStand')">🧍 Stand</div>
+                    <div class="btn-opt" onclick="applySidePose('walkA')">🚶 Walk — Step A</div>
+                    <div class="btn-opt" onclick="applySidePose('walkB')">🚶 Walk — Step B</div>
+                    <div class="btn-opt" onclick="applySidePose('runA')">🏃 Run — Step A</div>
+                    <div class="btn-opt" onclick="applySidePose('runB')">🏃 Run — Step B</div>
+                    <div class="btn-opt" onclick="toggleWalkCycle()" id="walkCycleBtn">▶️ Auto Walk Loop</div>
+                </div>
+                <div class="status-text" style="color:#a4b0be; text-align:left; font-size:0.7rem; margin-top:4px;">💡 Step A aur Step B ke beech switch karke ya Auto Walk Loop chala kar walking/running dikha sakte ho.</div>
             </div>
 
             <div id="wholeBodyControls">
@@ -796,6 +964,7 @@
             'right-shin':    { rot: 0, x: 0, y: 0 }
         };
         let currentSelectedPart = 'whole';
+        let activeCharView = 'front';
 
         let selectedElement = document.getElementById('characterWrapper');
         const viewport = document.getElementById('viewport');
@@ -893,6 +1062,7 @@
         });
 
         partRotSlider.addEventListener('input', (e) => {
+            if (activeCharView !== 'front') return;
             const val = parseInt(e.target.value);
             partRotVal.innerText = `${val}°`;
             if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
@@ -902,6 +1072,7 @@
         });
 
         partXSlider.addEventListener('input', (e) => {
+            if (activeCharView !== 'front') return;
             const val = parseInt(e.target.value);
             partXVal.innerText = `${val}px`;
             if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
@@ -911,6 +1082,7 @@
         });
 
         partYSlider.addEventListener('input', (e) => {
+            if (activeCharView !== 'front') return;
             const val = parseInt(e.target.value);
             partYVal.innerText = `${val}px`;
             if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
@@ -1019,6 +1191,176 @@
                 partRotSlider.value = rig.rot; partRotVal.innerText = `${rig.rot}°`;
                 partXSlider.value = rig.x; partXVal.innerText = `${rig.x}px`;
                 partYSlider.value = rig.y; partYVal.innerText = `${rig.y}px`;
+            }
+        }
+
+        // ============ FRONT / SIDE VIEW TOGGLE ============
+        const frontViewGroup = document.getElementById('frontView');
+        const sideViewGroup = document.getElementById('sideView');
+
+        function setCharView(view) {
+            activeCharView = view;
+            document.getElementById('viewFrontBtn').classList.toggle('active', view === 'front');
+            document.getElementById('viewSideBtn').classList.toggle('active', view === 'side');
+            document.getElementById('frontPartsBlock').style.display = view === 'front' ? 'block' : 'none';
+            document.getElementById('sidePartsBlock').style.display = view === 'side' ? 'block' : 'none';
+            if (frontViewGroup) frontViewGroup.style.display = view === 'front' ? 'block' : 'none';
+            if (sideViewGroup) sideViewGroup.style.display = view === 'side' ? 'block' : 'none';
+            if (view !== 'side') stopWalkCycle();
+        }
+
+        // ---- Side-view rig state & joint controls (mirrors the front-view system) ----
+        let sideRig = {
+            'swaist':         { rot: 0, x: 0, y: 0 },
+            'sneck':          { rot: 0, x: 0, y: 0 },
+            'shead':          { rot: 0, x: 0, y: 0 },
+            's-near-arm':     { rot: 0, x: 0, y: 0 },
+            's-near-forearm': { rot: 0, x: 0, y: 0 },
+            's-far-arm':      { rot: 0, x: 0, y: 0 },
+            's-far-forearm':  { rot: 0, x: 0, y: 0 },
+            's-near-leg':     { rot: 0, x: 0, y: 0 },
+            's-near-shin':    { rot: 0, x: 0, y: 0 },
+            's-far-leg':      { rot: 0, x: 0, y: 0 },
+            's-far-shin':     { rot: 0, x: 0, y: 0 }
+        };
+        let currentSelectedSidePart = 'whole';
+
+        const sidePartNames = {
+            'swaist': '🩳 Waist / Kamar', 'sneck': '🦒 Neck / Gardan', 'shead': '😀 Head',
+            's-near-arm': '💪 Front Arm', 's-near-forearm': '🤚 Front Forearm',
+            's-far-arm': '💪 Back Arm', 's-far-forearm': '🤚 Back Forearm',
+            's-near-leg': '🦵 Front Thigh', 's-near-shin': '🦶 Front Shin/Knee',
+            's-far-leg': '🦵 Back Thigh', 's-far-shin': '🦶 Back Shin/Knee'
+        };
+
+        function applySideTransform(part) {
+            const el = document.getElementById(part);
+            if (!el) return;
+            const rig = sideRig[part];
+            el.style.transform = `translate(${rig.x}px, ${rig.y}px) rotate(${rig.rot}deg)`;
+        }
+
+        const sidePartChips = document.getElementById('sidePartChips');
+        sidePartChips.querySelectorAll('.part-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                sidePartChips.querySelectorAll('.part-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentSelectedSidePart = chip.dataset.spart;
+
+                if (currentSelectedSidePart === 'whole') {
+                    partRotateControls.style.display = 'none';
+                    wholeBodyControls.style.display = 'block';
+                } else {
+                    wholeBodyControls.style.display = 'none';
+                    partRotateControls.style.display = 'block';
+                    partRotateLabel.innerText = sidePartNames[currentSelectedSidePart] || currentSelectedSidePart;
+                    const rig = sideRig[currentSelectedSidePart];
+                    partRotSlider.value = rig.rot; partRotVal.innerText = `${rig.rot}°`;
+                    partXSlider.value = rig.x; partXVal.innerText = `${rig.x}px`;
+                    partYSlider.value = rig.y; partYVal.innerText = `${rig.y}px`;
+                }
+            });
+        });
+
+        // Route the shared rotate/X/Y sliders to whichever view is active (front or side)
+        const _origPartRotHandler = partRotSlider.oninput;
+        partRotSlider.addEventListener('input', (e) => {
+            if (activeCharView === 'side' && currentSelectedSidePart !== 'whole') {
+                const val = parseInt(e.target.value);
+                partRotVal.innerText = `${val}°`;
+                sideRig[currentSelectedSidePart].rot = val;
+                applySideTransform(currentSelectedSidePart);
+            }
+        });
+        partXSlider.addEventListener('input', (e) => {
+            if (activeCharView === 'side' && currentSelectedSidePart !== 'whole') {
+                const val = parseInt(e.target.value);
+                partXVal.innerText = `${val}px`;
+                sideRig[currentSelectedSidePart].x = val;
+                applySideTransform(currentSelectedSidePart);
+            }
+        });
+        partYSlider.addEventListener('input', (e) => {
+            if (activeCharView === 'side' && currentSelectedSidePart !== 'whole') {
+                const val = parseInt(e.target.value);
+                partYVal.innerText = `${val}px`;
+                sideRig[currentSelectedSidePart].y = val;
+                applySideTransform(currentSelectedSidePart);
+            }
+        });
+
+        // ---- Side-view pose presets (two alternating steps drive the walk/run illusion) ----
+        const sidePosePresets = {
+            sideStand: {},
+            walkA: {
+                's-near-leg': { rot: -25, x: 0, y: 0 }, 's-near-shin': { rot: 15, x: 0, y: 0 },
+                's-far-leg':  { rot: 25,  x: 0, y: 0 }, 's-far-shin':  { rot: -10, x: 0, y: 0 },
+                's-near-arm': { rot: 25,  x: 0, y: 0 }, 's-far-arm':   { rot: -25, x: 0, y: 0 },
+                'sneck': { rot: 2, x: 0, y: 0 }
+            },
+            walkB: {
+                's-near-leg': { rot: 25,  x: 0, y: 0 }, 's-near-shin': { rot: -10, x: 0, y: 0 },
+                's-far-leg':  { rot: -25, x: 0, y: 0 }, 's-far-shin':  { rot: 15,  x: 0, y: 0 },
+                's-near-arm': { rot: -25, x: 0, y: 0 }, 's-far-arm':   { rot: 25,  x: 0, y: 0 },
+                'sneck': { rot: -2, x: 0, y: 0 }
+            },
+            runA: {
+                'swaist': { rot: 0, x: 0, y: -10 },
+                's-near-leg': { rot: -45, x: 0, y: 0 }, 's-near-shin': { rot: 55, x: 0, y: 0 },
+                's-far-leg':  { rot: 50,  x: 0, y: 0 }, 's-far-shin':  { rot: -65, x: 0, y: 0 },
+                's-near-arm': { rot: 55,  x: 0, y: 0 }, 's-near-forearm': { rot: -35, x: 0, y: 0 },
+                's-far-arm':  { rot: -55, x: 0, y: 0 }, 's-far-forearm':  { rot: 35, x: 0, y: 0 },
+                'sneck': { rot: 5, x: 0, y: 0 }
+            },
+            runB: {
+                'swaist': { rot: 0, x: 0, y: -10 },
+                's-near-leg': { rot: 50,  x: 0, y: 0 }, 's-near-shin': { rot: -65, x: 0, y: 0 },
+                's-far-leg':  { rot: -45, x: 0, y: 0 }, 's-far-shin':  { rot: 55,  x: 0, y: 0 },
+                's-near-arm': { rot: -55, x: 0, y: 0 }, 's-near-forearm': { rot: 35, x: 0, y: 0 },
+                's-far-arm':  { rot: 55,  x: 0, y: 0 }, 's-far-forearm':  { rot: -35, x: 0, y: 0 },
+                'sneck': { rot: -5, x: 0, y: 0 }
+            }
+        };
+
+        function applySidePose(poseName) {
+            const preset = sidePosePresets[poseName];
+            if (!preset) return;
+            Object.keys(sideRig).forEach(p => {
+                const target = preset[p] || { rot: 0, x: 0, y: 0 };
+                sideRig[p] = { rot: target.rot || 0, x: target.x || 0, y: target.y || 0 };
+                applySideTransform(p);
+            });
+            if (currentSelectedSidePart !== 'whole' && sideRig[currentSelectedSidePart]) {
+                const rig = sideRig[currentSelectedSidePart];
+                partRotSlider.value = rig.rot; partRotVal.innerText = `${rig.rot}°`;
+                partXSlider.value = rig.x; partXVal.innerText = `${rig.x}px`;
+                partYSlider.value = rig.y; partYVal.innerText = `${rig.y}px`;
+            }
+        }
+
+        // ---- Auto walk-cycle loop: alternates Step A / Step B on a timer ----
+        let walkCycleInterval = null;
+        let walkCycleToggleState = false;
+
+        function toggleWalkCycle() {
+            const btn = document.getElementById('walkCycleBtn');
+            if (walkCycleInterval) {
+                stopWalkCycle();
+            } else {
+                btn.innerText = '⏸️ Stop Walk Loop';
+                walkCycleInterval = setInterval(() => {
+                    walkCycleToggleState = !walkCycleToggleState;
+                    applySidePose(walkCycleToggleState ? 'walkB' : 'walkA');
+                }, 350);
+            }
+        }
+
+        function stopWalkCycle() {
+            if (walkCycleInterval) {
+                clearInterval(walkCycleInterval);
+                walkCycleInterval = null;
+                const btn = document.getElementById('walkCycleBtn');
+                if (btn) btn.innerText = '▶️ Auto Walk Loop';
             }
         }
 
