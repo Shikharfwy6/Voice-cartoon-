@@ -935,8 +935,38 @@
             const ctx = canvas.getContext('2d');
             const svgElement = document.querySelector('.character-wrapper svg');
 
-            // Draws exactly one frame onto the canvas. Awaited, so callers
-            // are guaranteed the frame is fully painted before continuing.
+            // Reusable Image element — avoids creating a new Blob URL + Image
+            // on every single frame, which caused visible flicker because
+            // each frame took a different amount of time to decode/load.
+            const frameImg = new Image();
+            let frameImgReady = false;
+            let pendingUrl = null;
+            let lastRequestedSvgString = null;
+
+            frameImg.onload = () => {
+                frameImgReady = true;
+                if (pendingUrl) { URL.revokeObjectURL(pendingUrl); pendingUrl = null; }
+            };
+
+            // Kicks off loading the current SVG state into frameImg, but does
+            // NOT wait for it — drawFrame() below always paints using the
+            // most recently *completed* load, so the canvas never shows a
+            // half-updated/blank frame.
+            function requestSvgUpdate() {
+                if (!svgElement) return;
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                if (svgData === lastRequestedSvgString) return; // pose unchanged, skip re-encode
+                lastRequestedSvgString = svgData;
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                frameImg.src = url;
+                pendingUrl = url;
+            }
+
+            // Draws exactly one frame onto the canvas using whatever the
+            // latest fully-loaded character image is. Awaited by the first
+            // call in the caller so the very first painted frame is guaranteed
+            // real before recording starts.
             function drawFrame() {
                 return new Promise((resolve) => {
                     ctx.fillStyle = "#ffffff";
@@ -944,17 +974,33 @@
 
                     if (!svgElement) { resolve(); return; }
 
-                    const svgData = new XMLSerializer().serializeToString(svgElement);
-                    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                    const url = URL.createObjectURL(svgBlob);
-                    const img = new Image();
-                    img.onload = () => {
-                        ctx.drawImage(img, 100, 40, 180, 240);
-                        URL.revokeObjectURL(url);
-                        resolve();
-                    };
-                    img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-                    img.src = url;
+                    if (!frameImgReady) {
+                        // First ever frame: must block until the image is
+                        // actually loaded, otherwise we'd start recording
+                        // on a blank canvas again.
+                        const svgData = new XMLSerializer().serializeToString(svgElement);
+                        lastRequestedSvgString = svgData;
+                        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                        const url = URL.createObjectURL(svgBlob);
+                        frameImg.onload = () => {
+                            frameImgReady = true;
+                            ctx.drawImage(frameImg, 100, 40, 180, 240);
+                            URL.revokeObjectURL(url);
+                            frameImg.onload = () => {
+                                frameImgReady = true;
+                                if (pendingUrl) { URL.revokeObjectURL(pendingUrl); pendingUrl = null; }
+                            };
+                            resolve();
+                        };
+                        frameImg.src = url;
+                        return;
+                    }
+
+                    // Normal case: draw the last-completed image immediately
+                    // (no waiting), then kick off loading the next pose.
+                    ctx.drawImage(frameImg, 100, 40, 180, 240);
+                    requestSvgUpdate();
+                    resolve();
                 });
             }
 
