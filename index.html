@@ -43,7 +43,7 @@
             gap: 8px;
         }
 
-        /* 3D Perspective Workspace Stage */
+        /* 3D Perspective Stage Workspace */
         .workspace {
             flex: 1;
             display: flex;
@@ -107,7 +107,7 @@
         }
 
         .bottom-panel {
-            height: 280px;
+            height: 310px;
             background: #181920;
             border-top: 1px solid #282a36;
             display: flex;
@@ -201,12 +201,15 @@
             background: #20222c;
             border: 1px dashed #4b4b4b;
             color: #fff;
-            padding: 12px;
+            padding: 10px;
             border-radius: 6px;
             text-align: center;
             font-size: 0.85rem;
             cursor: pointer;
             width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .file-btn input { display: none; }
@@ -214,21 +217,23 @@
         .btn-record {
             background: #ff4757;
             color: #fff;
-            padding: 12px;
+            padding: 10px;
             border: none;
             border-radius: 6px;
             font-weight: bold;
             width: 100%;
+            cursor: pointer;
         }
 
         .btn-play {
             background: #2ed573;
             color: #000;
-            padding: 12px;
+            padding: 10px;
             border: none;
             border-radius: 6px;
             font-weight: bold;
             width: 100%;
+            cursor: pointer;
         }
 
         .btn-play.paused {
@@ -256,6 +261,13 @@
             border-radius: 6px;
             margin-bottom: 6px;
             font-size: 0.85rem;
+        }
+
+        .status-text {
+            font-size: 0.75rem;
+            color: #2ed573;
+            margin-bottom: 5px;
+            text-align: center;
         }
 
         #mouth { transform-origin: center center; transform-box: fill-box; }
@@ -320,7 +332,7 @@
     <footer class="bottom-panel">
         <div class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('transform', event)">📐 3D Space (X, Y, Z)</button>
-            <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Effects</button>
+            <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Sync</button>
             <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Assets & BG</button>
             <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Aspect Ratio</button>
             <button class="tab-btn" onclick="switchTab('layers', event)">📚 Layers Stack</button>
@@ -339,7 +351,7 @@
             </div>
 
             <div class="control-group">
-                <div class="slider-label"><span>Z Axis (Depth - Near/Far)</span><span id="zVal">0px</span></div>
+                <div class="slider-label"><span>Z Axis (3D Space Depth)</span><span id="zVal">0px</span></div>
                 <input type="range" id="posZSlider" min="-300" max="350" value="0">
             </div>
 
@@ -349,8 +361,17 @@
             </div>
         </div>
 
-        <!-- Voice & Playback Controls Tab -->
+        <!-- Voice & Video Import Controls Tab -->
         <div id="tab-voice" class="tab-content">
+            <div id="audioStatus" class="status-text"></div>
+
+            <div class="control-row">
+                <label class="file-btn">
+                    🎬 Select Video from Gallery
+                    <input type="file" id="videoUpload" accept="video/*">
+                </label>
+            </div>
+
             <div class="control-group">
                 <div class="slider-label"><span>Pitch Control</span><span id="pitchVal">1.0x</span></div>
                 <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
@@ -368,12 +389,12 @@
 
             <div class="control-row">
                 <label style="font-size:0.8rem; color:#a4b0be; display:flex; align-items:center; gap:8px;">
-                    <input type="checkbox" id="telephonicFx"> 📞 Walkie-Talkie Filter FX
+                    <input type="checkbox" id="telephonicFx"> 📞 Walkie-Talkie FX Filter
                 </label>
             </div>
 
             <div class="control-row">
-                <button id="recordBtn" class="btn-record">🎤 Record Voice</button>
+                <button id="recordBtn" class="btn-record">🎤 Record Mic</button>
                 <button id="playBtn" class="btn-play" disabled>▶️ Play</button>
             </div>
         </div>
@@ -431,6 +452,7 @@
         const speedSlider = document.getElementById('speedSlider');
         const volSlider = document.getElementById('volSlider');
         const telephonicFx = document.getElementById('telephonicFx');
+        const audioStatus = document.getElementById('audioStatus');
 
         function switchTab(tabId, e) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -484,7 +506,34 @@
             }
         });
 
-        // 3D Matrix & Transform Handler
+        // Gallery Video Audio Extractor Implementation
+        document.getElementById('videoUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            audioStatus.innerText = "⌛ Extracting voice from video...";
+            
+            try {
+                const fileArrayBuffer = await file.arrayBuffer();
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                // Decode video file's embedded audio track
+                audioBuffer = await audioContext.decodeAudioData(fileArrayBuffer);
+                
+                playBtn.disabled = false;
+                pauseOffset = 0;
+                isPlaying = false;
+                isPaused = false;
+                audioStatus.innerText = "✅ Video voice extracted successfully!";
+            } catch (err) {
+                audioStatus.innerText = "❌ Failed to extract audio from video.";
+                alert("Error processing video file: " + err.message);
+            }
+        });
+
+        // 3D Space Matrix Engine
         function getTransformValues(el) {
             const transform = el.style.transform;
             const match3D = transform.match(/translate3d\(([^px]+)px,\s*([^px]+)px,\s*([^px]+)px\)/);
@@ -516,7 +565,6 @@
             const z = posZSlider.value;
             const s = scaleSlider.value;
 
-            // Direct 3D Matrix transform string
             selectedElement.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${s})`;
             updateTransformSliders(x, y, z, s);
         }
@@ -579,7 +627,7 @@
 
         makeDraggable(document.getElementById('characterWrapper'));
 
-        // Recording Controls
+        // Recording System
         let mediaRecorder, audioChunks = [];
         const recordBtn = document.getElementById('recordBtn');
         const playBtn = document.getElementById('playBtn');
@@ -595,12 +643,13 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
                         const arrayBuffer = await audioBlob.arrayBuffer();
-                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
                         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                         playBtn.disabled = false;
                         pauseOffset = 0;
                         isPlaying = false;
                         isPaused = false;
+                        audioStatus.innerText = "🎤 Mic voice recorded!";
                     };
 
                     mediaRecorder.start();
@@ -611,12 +660,12 @@
                 }
             } else {
                 mediaRecorder.stop();
-                recordBtn.innerText = '🎤 Record Voice';
+                recordBtn.innerText = '🎤 Record Mic';
                 recordBtn.classList.remove('recording');
             }
         });
 
-        // Advanced Play/Pause Control Logic
+        // Dynamic Playback and Lip Sync Controls
         playBtn.addEventListener('click', () => {
             if (!audioBuffer) return;
 
@@ -625,7 +674,6 @@
             }
 
             if (isPlaying && !isPaused) {
-                // Pause Action
                 if (activeSource) {
                     activeSource.stop();
                     pauseOffset += audioContext.currentTime - startTime;
@@ -639,7 +687,6 @@
                 return;
             }
 
-            // Play / Resume Action
             startPlayback();
         });
 
