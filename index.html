@@ -32,6 +32,7 @@
             padding: 0 15px;
             border-bottom: 1px solid #282a36;
             z-index: 20;
+            flex-shrink: 0;
         }
 
         .app-title {
@@ -43,6 +44,15 @@
             gap: 8px;
         }
 
+        .fps-badge {
+            font-size: 0.75rem;
+            color: #a4b0be;
+            background: #20222c;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid #282a36;
+        }
+
         .workspace {
             flex: 1;
             display: flex;
@@ -52,6 +62,7 @@
             position: relative;
             overflow: hidden;
             padding: 10px;
+            min-height: 0;
         }
 
         .viewport {
@@ -63,9 +74,6 @@
             border-radius: 6px;
             overflow: hidden;
             touch-action: none;
-            perspective: 600px;
-            perspective-origin: 50% 50%;
-            transform-style: preserve-3d;
         }
 
         .ratio-16-9 { width: 100%; max-width: 640px; aspect-ratio: 16/9; }
@@ -79,13 +87,12 @@
             cursor: move;
             touch-action: none;
             display: inline-block;
-            transform-style: preserve-3d;
             will-change: transform;
         }
 
         .draggable-element.selected {
-            box-shadow: 0 0 0 2px #ff4757, 0 0 0 6px rgba(255,71,87,0.35);
-            border-radius: 4px;
+            outline: 2px dashed #ff4757;
+            outline-offset: 4px;
         }
 
         .character-wrapper {
@@ -125,12 +132,13 @@
         }
 
         .bottom-panel {
-            height: 360px;
+            height: 380px;
             background: #181920;
             border-top: 1px solid #282a36;
             display: flex;
             flex-direction: column;
             z-index: 20;
+            flex-shrink: 0;
         }
 
         .tab-bar {
@@ -141,11 +149,11 @@
         }
 
         .tab-btn {
-            padding: 12px 18px;
+            padding: 12px 16px;
             background: none;
             border: none;
             color: #a4b0be;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 600;
             white-space: nowrap;
             cursor: pointer;
@@ -169,7 +177,19 @@
             display: block;
         }
 
-        .control-group { margin-bottom: 8px; }
+        .control-group { margin-bottom: 10px; }
+
+        .section-label {
+            font-size: 0.7rem;
+            color: #ff4757;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 12px 0 6px 0;
+            border-bottom: 1px solid #282a36;
+            padding-bottom: 4px;
+        }
+        .section-label:first-child { margin-top: 0; }
 
         .slider-label {
             display: flex;
@@ -180,6 +200,16 @@
         }
 
         input[type=range] { width: 100%; accent-color: #ff4757; }
+
+        select {
+            width: 100%;
+            background: #20222c;
+            color: #fff;
+            border: 1px solid #282a36;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
 
         .control-row {
             display: flex;
@@ -192,6 +222,12 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
+        }
+
+        .btn-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
         }
 
         .btn-opt {
@@ -235,11 +271,6 @@
             cursor: pointer;
         }
 
-        .btn-play:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
         .btn-export {
             background: #3742fa;
             color: #fff;
@@ -252,8 +283,9 @@
         }
 
         .btn-export:disabled {
-            opacity: 0.5;
+            background: #2f3542;
             cursor: not-allowed;
+            opacity: 0.6;
         }
 
         .status-text {
@@ -292,6 +324,7 @@
         }
 
         .btn-tool:hover { background: #ff4757; border-color: #ff4757; }
+        .btn-tool.danger { background: #ff4757; }
 
         .timeline-header {
             display: flex;
@@ -384,15 +417,43 @@
             padding: 0 2px;
         }
 
+        .part-btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .part-chip {
+            padding: 6px 10px;
+            border-radius: 14px;
+            background: #20222c;
+            border: 1px solid #282a36;
+            color: #a4b0be;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .part-chip.active {
+            background: #ff4757;
+            border-color: #ff4757;
+            color: #fff;
+        }
+
         #mouth { transform-origin: center center; transform-box: fill-box; }
-        #left-arm { transform-origin: top right; transform-box: fill-box; }
-        #right-arm { transform-origin: top left; transform-box: fill-box; }
+        #left-arm { transform-origin: 110px 215px; }
+        #right-arm { transform-origin: 240px 215px; }
+        #left-leg { transform-origin: 140px 330px; }
+        #right-leg { transform-origin: 210px 330px; }
+        #head { transform-origin: 175px 130px; }
+        #eyes { transform-origin: center center; transform-box: fill-box; }
     </style>
 </head>
 <body>
 
     <header class="app-header">
         <div class="app-title">🎬 2D Alight Animation Studio</div>
+        <div class="fps-badge" id="fpsBadge">24 FPS</div>
     </header>
 
     <main class="workspace">
@@ -446,32 +507,64 @@
 
     <footer class="bottom-panel">
         <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('transform', event)">📐 3D Space</button>
-            <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Pitch</button>
+            <button class="tab-btn active" onclick="switchTab('rig', event)">🦴 Rig / Parts</button>
+            <button class="tab-btn" onclick="switchTab('voice', event)">🎙️ Voice & Lip-Sync</button>
             <button class="tab-btn" onclick="switchTab('timeline', event)">⏱️ Timeline</button>
             <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Assets & BG</button>
-            <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Ratio & Export</button>
+            <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Export</button>
         </div>
 
-        <div id="tab-transform" class="tab-content active">
-            <div class="control-group">
-                <div class="slider-label"><span>X Axis</span><span id="xVal">100px</span></div>
-                <input type="range" id="posXSlider" min="-300" max="600" value="100">
+        <!-- RIG / PART-BY-PART CONTROL TAB -->
+        <div id="tab-rig" class="tab-content active">
+            <div class="section-label">Select Body Part</div>
+            <div class="part-btn-row" id="partChips">
+                <div class="part-chip active" data-part="whole">🧍 Whole Body</div>
+                <div class="part-chip" data-part="head">😀 Head</div>
+                <div class="part-chip" data-part="left-arm">💪 Left Arm</div>
+                <div class="part-chip" data-part="right-arm">💪 Right Arm</div>
+                <div class="part-chip" data-part="left-leg">🦵 Left Leg</div>
+                <div class="part-chip" data-part="right-leg">🦵 Right Leg</div>
+                <div class="part-chip" data-part="mouth">👄 Mouth</div>
             </div>
-            <div class="control-group">
-                <div class="slider-label"><span>Y Axis</span><span id="yVal">40px</span></div>
-                <input type="range" id="posYSlider" min="-300" max="400" value="40">
+
+            <div id="wholeBodyControls">
+                <div class="section-label">Whole Body — Position / Depth / Scale</div>
+                <div class="control-group">
+                    <div class="slider-label"><span>X Axis</span><span id="xVal">100px</span></div>
+                    <input type="range" id="posXSlider" min="-300" max="600" value="100">
+                </div>
+                <div class="control-group">
+                    <div class="slider-label"><span>Y Axis</span><span id="yVal">40px</span></div>
+                    <input type="range" id="posYSlider" min="-300" max="400" value="40">
+                </div>
+                <div class="control-group">
+                    <div class="slider-label"><span>Scale</span><span id="sVal">1.0x</span></div>
+                    <input type="range" id="scaleSlider" min="0.2" max="2.5" step="0.1" value="1.0">
+                </div>
             </div>
-            <div class="control-group">
-                <div class="slider-label"><span>Z Axis (Depth)</span><span id="zVal">0px</span></div>
-                <input type="range" id="posZSlider" min="-300" max="350" value="0">
+
+            <div id="partRotateControls" style="display:none;">
+                <div class="section-label"><span id="partRotateLabel">Part</span> — Rotation</div>
+                <div class="control-group">
+                    <div class="slider-label"><span>Rotate</span><span id="partRotVal">0°</span></div>
+                    <input type="range" id="partRotSlider" min="-90" max="90" value="0">
+                </div>
+                <div class="control-row">
+                    <button class="btn-tool" onclick="resetPartRotation()">↺ Reset This Part</button>
+                    <button class="btn-tool" onclick="resetAllParts()">↺ Reset All Parts</button>
+                </div>
             </div>
-            <div class="control-group">
-                <div class="slider-label"><span>Scale</span><span id="sVal">1.0x</span></div>
-                <input type="range" id="scaleSlider" min="0.2" max="2.5" step="0.1" value="1.0">
+
+            <div class="section-label">Live FPS (Preview + Export)</div>
+            <div class="btn-grid-4">
+                <div class="btn-opt" data-fps="12">12</div>
+                <div class="btn-opt active" data-fps="24">24</div>
+                <div class="btn-opt" data-fps="30">30</div>
+                <div class="btn-opt" data-fps="60">60</div>
             </div>
         </div>
 
+        <!-- Voice, Pitch, Speed & Lip-Sync Tab -->
         <div id="tab-voice" class="tab-content">
             <div id="audioStatus" class="status-text"></div>
             <div class="control-row">
@@ -480,12 +573,23 @@
                     <input type="file" id="videoUpload" accept="video/*,audio/*">
                 </label>
             </div>
+
+            <div class="section-label">Automatic Lip-Sync</div>
+            <div class="control-row">
+                <div class="part-chip active" id="lipSyncToggle" style="flex:1; text-align:center;">✅ Auto Lip-Sync ON</div>
+            </div>
             <div class="control-group">
-                <div class="slider-label"><span>🎚️ Voice Pitch Tone (Frequency Shift)</span><span id="pitchVal">0 semitones</span></div>
+                <div class="slider-label"><span>👄 Mouth Sensitivity</span><span id="sensVal">1.0x</span></div>
+                <input type="range" id="sensSlider" min="0.3" max="3.0" step="0.1" value="1.0">
+            </div>
+
+            <div class="section-label">Pitch & Speed</div>
+            <div class="control-group">
+                <div class="slider-label"><span>🎚️ Voice Pitch Tone</span><span id="pitchVal">0 semitones</span></div>
                 <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0">
             </div>
             <div class="control-group">
-                <div class="slider-label"><span>⚡ Playback Speed (Tempo Only)</span><span id="speedVal">1.0x</span></div>
+                <div class="slider-label"><span>⚡ Playback Speed</span><span id="speedVal">1.0x</span></div>
                 <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0">
             </div>
             <div class="control-group">
@@ -547,28 +651,19 @@
                 <div class="btn-opt" onclick="setRatio('1-1', event)">1:1 Square</div>
             </div>
             <div class="control-row">
-                <button id="fullscreenPlayBtn" class="btn-export" onclick="startFullscreenPlayback()">🖥️ Fullscreen Play (Screen Record ke liye)</button>
+                <button id="exportBtn" class="btn-export" onclick="exportVideo()">💾 Export Animation Video (.webm)</button>
             </div>
-            <div id="exportStatus" class="status-text" style="margin-top: 5px;">Fullscreen open hote hi apna phone ka screen recorder ON kar dein, phir yahi button dobara tap karke animation play karein.</div>
+            <div id="exportStatus" class="status-text" style="margin-top: 5px;"></div>
         </div>
     </footer>
 
-    <!-- Fullscreen playback overlay: exact same live viewport, just blown up
-         to fill the whole screen so a phone's built-in screen recorder can
-         capture it directly. No canvas/MediaRecorder involved, so there is
-         zero risk of displacement, missing mouth, or quality loss — what you
-         see is exactly what gets recorded. -->
-    <div id="fullscreenOverlay" style="display:none; position:fixed; inset:0; background:#000; z-index:1000; flex-direction:column; align-items:center; justify-content:center;">
-        <button id="exitFullscreenBtn" onclick="exitFullscreenPlayback()" style="position:absolute; top:14px; right:14px; z-index:1001; background:#20222c; color:#fff; border:1px solid #444; border-radius:6px; padding:8px 14px; font-size:0.85rem;">✕ Exit</button>
-        <div id="fsPlayHint" style="position:absolute; top:14px; left:14px; z-index:1001; color:#2ed573; font-size:0.75rem; max-width:65%;"></div>
-        <div id="fullscreenStage" style="position:relative; overflow:hidden;"></div>
-        <button id="fsPlayBtn" onclick="toggleFullscreenPlay()" style="position:absolute; bottom:24px; z-index:1001; background:#2ed573; color:#000; border:none; border-radius:30px; padding:14px 28px; font-weight:bold; font-size:1rem;">▶️ Play</button>
-    </div>
-
     <script>
+        // ============ STATE ============
         let audioContext, audioBuffer, activeSource, gainNode, filterNode, analyser, dataArray;
         let isPlaying = false;
         let startTime = 0;
+        let fps = 24;
+        let animLoopHandle = null;
 
         let timelineClipsData = [];
         let selectedClipId = null;
@@ -576,6 +671,12 @@
 
         let pitchSemiTones = 0;
         let playbackSpeed = 1.0;
+        let lipSyncEnabled = true;
+        let mouthSensitivity = 1.0;
+
+        // Per-part rig rotation state (degrees)
+        let partRotations = { head: 0, 'left-arm': 0, 'right-arm': 0, 'left-leg': 0, 'right-leg': 0 };
+        let currentSelectedPart = 'whole';
 
         let selectedElement = document.getElementById('characterWrapper');
         const viewport = document.getElementById('viewport');
@@ -585,7 +686,9 @@
         const memeOverlay = document.getElementById('memeOverlay');
         const memePlayer = document.getElementById('memePlayer');
         const playBtn = document.getElementById('playBtn');
+        const characterWrapper = document.getElementById('characterWrapper');
 
+        // ============ TABS ============
         function switchTab(tabId, e) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -593,6 +696,115 @@
             document.getElementById(`tab-${tabId}`).classList.add('active');
         }
 
+        // ============ FPS CONTROL ============
+        document.querySelectorAll('[data-fps]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-fps]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                fps = parseInt(btn.dataset.fps);
+                document.getElementById('fpsBadge').innerText = `${fps} FPS`;
+            });
+        });
+
+        // ============ PART SELECTION / RIG ============
+        const partChips = document.getElementById('partChips');
+        const wholeBodyControls = document.getElementById('wholeBodyControls');
+        const partRotateControls = document.getElementById('partRotateControls');
+        const partRotateLabel = document.getElementById('partRotateLabel');
+        const partRotSlider = document.getElementById('partRotSlider');
+        const partRotVal = document.getElementById('partRotVal');
+
+        const partNames = {
+            'head': '😀 Head',
+            'left-arm': '💪 Left Arm',
+            'right-arm': '💪 Right Arm',
+            'left-leg': '🦵 Left Leg',
+            'right-leg': '🦵 Right Leg',
+            'mouth': '👄 Mouth'
+        };
+
+        partChips.querySelectorAll('.part-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                partChips.querySelectorAll('.part-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentSelectedPart = chip.dataset.part;
+
+                if (currentSelectedPart === 'whole') {
+                    wholeBodyControls.style.display = 'block';
+                    partRotateControls.style.display = 'none';
+                } else if (currentSelectedPart === 'mouth') {
+                    wholeBodyControls.style.display = 'none';
+                    partRotateControls.style.display = 'none';
+                } else {
+                    wholeBodyControls.style.display = 'none';
+                    partRotateControls.style.display = 'block';
+                    partRotateLabel.innerText = partNames[currentSelectedPart] || currentSelectedPart;
+                    partRotSlider.value = partRotations[currentSelectedPart] || 0;
+                    partRotVal.innerText = `${partRotSlider.value}°`;
+                }
+            });
+        });
+
+        partRotSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            partRotVal.innerText = `${val}°`;
+            if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
+                partRotations[currentSelectedPart] = val;
+                applyPartRotation(currentSelectedPart);
+            }
+        });
+
+        function applyPartRotation(part) {
+            const el = document.getElementById(part);
+            if (!el) return;
+            const deg = partRotations[part] || 0;
+            // Base idle animation angle (if any) is added on top separately during playback;
+            // here we just set the manual pose rotation.
+            el.dataset.manualRot = deg;
+            updatePartTransform(part);
+        }
+
+        function updatePartTransform(part) {
+            const el = document.getElementById(part);
+            if (!el) return;
+            const manual = parseFloat(el.dataset.manualRot || 0);
+            const anim = parseFloat(el.dataset.animRot || 0);
+            el.style.transform = `rotate(${manual + anim}deg)`;
+        }
+
+        function resetPartRotation() {
+            if (currentSelectedPart === 'whole' || currentSelectedPart === 'mouth') return;
+            partRotations[currentSelectedPart] = 0;
+            partRotSlider.value = 0;
+            partRotVal.innerText = '0°';
+            applyPartRotation(currentSelectedPart);
+        }
+
+        function resetAllParts() {
+            Object.keys(partRotations).forEach(p => {
+                partRotations[p] = 0;
+                applyPartRotation(p);
+            });
+            if (currentSelectedPart !== 'whole' && currentSelectedPart !== 'mouth') {
+                partRotSlider.value = 0;
+                partRotVal.innerText = '0°';
+            }
+        }
+
+        // ============ LIP SYNC TOGGLE ============
+        const lipSyncToggle = document.getElementById('lipSyncToggle');
+        lipSyncToggle.addEventListener('click', () => {
+            lipSyncEnabled = !lipSyncEnabled;
+            lipSyncToggle.innerText = lipSyncEnabled ? '✅ Auto Lip-Sync ON' : '⛔ Auto Lip-Sync OFF';
+            lipSyncToggle.classList.toggle('active', lipSyncEnabled);
+        });
+
+        document.getElementById('sensSlider').addEventListener('input', (e) => {
+            mouthSensitivity = parseFloat(e.target.value);
+            document.getElementById('sensVal').innerText = mouthSensitivity.toFixed(1) + 'x';
+        });
+
+        // ============ TIMELINE ============
         function getTotalTimelineDuration() {
             return timelineClipsData.reduce((acc, clip) => acc + (clip.duration / playbackSpeed), 0);
         }
@@ -732,11 +944,11 @@
                 renderTimelineUI();
                 document.getElementById('audioStatus').innerText = "✅ Audio Track Loaded!";
             } catch (err) {
-                console.error(err);
-                document.getElementById('audioStatus').innerText = "❌ Audio processing failed!";
+                alert("Audio processing failed!");
             }
         });
 
+        // ============ PITCH / SPEED ============
         document.getElementById('pitchSlider').addEventListener('input', (e) => {
             pitchSemiTones = parseInt(e.target.value);
             document.getElementById('pitchVal').innerText = (pitchSemiTones > 0 ? '+' : '') + pitchSemiTones + ' semitones';
@@ -753,11 +965,6 @@
             renderTimelineUI();
         });
 
-        document.getElementById('volSlider').addEventListener('input', (e) => {
-            document.getElementById('volVal').innerText = Math.round(parseFloat(e.target.value) * 100) + '%';
-            if (gainNode) gainNode.gain.value = parseFloat(e.target.value);
-        });
-
         function updateAudioFilterPitch() {
             if (filterNode && audioContext) {
                 const freq = 1000 * Math.pow(2, pitchSemiTones / 12);
@@ -765,6 +972,7 @@
             }
         }
 
+        // ============ ASSETS / BG ============
         document.getElementById('bgUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -791,6 +999,7 @@
             reader.readAsDataURL(file);
         });
 
+        // ============ PLAYBACK ============
         playBtn.addEventListener('click', () => {
             if (isPlaying) { pausePlayback(); } else { startPlaybackAt(currentPlayheadTime); }
         });
@@ -830,7 +1039,8 @@
             startTime = audioContext.currentTime - timeSec;
             isPlaying = true;
             playBtn.innerText = '⏸️ Pause Timeline';
-            requestAnimationFrame(animateTimeline);
+            lastFrameTime = 0;
+            animLoopHandle = requestAnimationFrame(animateTimeline);
         }
 
         function pausePlayback() {
@@ -839,10 +1049,21 @@
             memePlayer.pause();
             playBtn.innerText = '▶️ Play Timeline';
             resetPose();
+            if (animLoopHandle) cancelAnimationFrame(animLoopHandle);
         }
 
-        function animateTimeline() {
+        // Throttle animation updates to selected FPS
+        let lastFrameTime = 0;
+
+        function animateTimeline(now) {
             if (!isPlaying) return;
+
+            const frameInterval = 1000 / fps;
+            if (now && lastFrameTime && (now - lastFrameTime) < frameInterval) {
+                animLoopHandle = requestAnimationFrame(animateTimeline);
+                return;
+            }
+            lastFrameTime = now || 0;
 
             currentPlayheadTime = audioContext.currentTime - startTime;
             const totalDur = getTotalTimelineDuration();
@@ -883,169 +1104,274 @@
                     memePlayer.pause();
                 }
 
-                if (analyser && dataArray) {
+                if (lipSyncEnabled && analyser && dataArray) {
                     analyser.getByteFrequencyData(dataArray);
                     let sum = dataArray.reduce((a, b) => a + b, 0);
-                    let avg = sum / dataArray.length;
+                    let avg = (sum / dataArray.length) * mouthSensitivity;
 
                     const mouth = document.getElementById('mouth');
-                    const leftArm = document.getElementById('left-arm');
                     if (mouth) mouth.style.transform = `scaleY(${Math.min(1 + avg / 15, 4)})`;
-                    if (leftArm) leftArm.style.transform = `rotate(${avg / 5}deg)`;
+
+                    // Subtle idle body sway driven by voice energy, layered on top of manual pose
+                    setAnimRot('left-arm', avg / 8);
+                    setAnimRot('right-arm', -avg / 10);
+                } else {
+                    const mouth = document.getElementById('mouth');
+                    if (mouth) mouth.style.transform = 'scaleY(1)';
+                    setAnimRot('left-arm', 0);
+                    setAnimRot('right-arm', 0);
                 }
             }
 
-            requestAnimationFrame(animateTimeline);
+            animLoopHandle = requestAnimationFrame(animateTimeline);
+        }
+
+        function setAnimRot(part, deg) {
+            const el = document.getElementById(part);
+            if (!el) return;
+            el.dataset.animRot = deg;
+            updatePartTransform(part);
         }
 
         function resetPose() {
             const mouth = document.getElementById('mouth');
-            const leftArm = document.getElementById('left-arm');
             if (mouth) mouth.style.transform = 'scaleY(1)';
-            if (leftArm) leftArm.style.transform = 'rotate(0deg)';
+            setAnimRot('left-arm', 0);
+            setAnimRot('right-arm', 0);
         }
 
-        // ===================== FULLSCREEN PLAYBACK (for manual screen recording) =====================
-        // Instead of re-drawing the character onto a <canvas> (which kept
-        // breaking: quality loss, character displacement, mouth vanishing —
-        // because every visual detail had to be re-implemented by hand),
-        // this mode simply moves the REAL, LIVE viewport element into a
-        // fullscreen overlay. Same DOM, same CSS animations, same SVG,
-        // same audio — nothing is re-drawn or re-encoded, so nothing can
-        // drift from what you already see working in the editor. You just
-        // start your phone's built-in screen recorder, tap Play here, and
-        // record the real thing.
-        const fullscreenOverlay = document.getElementById('fullscreenOverlay');
-        const fullscreenStage = document.getElementById('fullscreenStage');
-        const fsPlayBtn = document.getElementById('fsPlayBtn');
-        const fsPlayHint = document.getElementById('fsPlayHint');
-        let fsOriginalParent = null;
-        let fsOriginalNextSibling = null;
-        let fsPreviouslySelected = null;
-        let fsNativeWidth = 0;
-        let fsNativeHeight = 0;
+        // ============ EXPORT (Canvas-based, reliable) ============
+        async function exportVideo() {
+            const exportStatus = document.getElementById('exportStatus');
+            const exportBtn = document.getElementById('exportBtn');
 
-        function sizeFullscreenStage() {
-            const cls = viewport.className; // e.g. "viewport ratio-16-9"
-            // Use the viewport's REAL editor size as the fixed internal
-            // coordinate system — character/asset positions are stored as
-            // raw pixel translate3d() values relative to this size. We must
-            // never change viewport's actual width/height, only how large it
-            // is drawn on screen (via CSS transform: scale), otherwise every
-            // child's pixel position ends up pointing at the wrong spot —
-            // this was the cause of the character "jumping" in fullscreen.
-            const nativeW = fsNativeWidth;
-            const nativeH = fsNativeHeight;
-
-            const maxW = window.innerWidth * 0.96;
-            const maxH = window.innerHeight * 0.78;
-            const scale = Math.min(maxW / nativeW, maxH / nativeH);
-
-            fullscreenStage.style.width = nativeW + 'px';
-            fullscreenStage.style.height = nativeH + 'px';
-            fullscreenStage.style.transform = `scale(${scale})`;
-            fullscreenStage.style.transformOrigin = 'center center';
-        }
-
-        function startFullscreenPlayback() {
             if (timelineClipsData.length === 0) {
-                alert("Pehle timeline mein koi audio/video clip add karein!");
+                alert("Pehle timeline mein koi audio ya clip add karein!");
                 return;
             }
 
-            // Hide the editor's "selected" outline (the dashed red box) before
-            // going fullscreen, since it's a purely editing-time indicator and
-            // should never show up in a recording. We remember which elements
-            // had it so it can be restored exactly on exit.
-            fsPreviouslySelected = Array.from(document.querySelectorAll('.draggable-element.selected'));
-            fsPreviouslySelected.forEach(el => el.classList.remove('selected'));
+            if (typeof MediaRecorder === 'undefined') {
+                exportStatus.innerText = "❌ Yeh browser video recording support nahi karta.";
+                return;
+            }
 
-            // Disable dragging/selecting on-stage while fullscreen so an
-            // accidental tap during recording can't select an element and
-            // bring the dashed outline back mid-recording.
-            viewport.style.pointerEvents = 'none';
-            // Move the actual live viewport (with character, assets,
-            // background, meme overlay — everything) into the fullscreen
-            // stage. We remember exactly where it came from so Exit can put
-            // it back untouched.
-            fsOriginalParent = viewport.parentElement;
-            fsOriginalNextSibling = viewport.nextSibling;
+            exportBtn.disabled = true;
+            exportStatus.innerText = "⏳ Preparing export...";
 
-            // Capture the viewport's actual editor pixel size BEFORE moving
-            // it — this is the coordinate system every character/asset
-            // translate3d() position is relative to.
-            const rect = viewport.getBoundingClientRect();
-            fsNativeWidth = rect.width;
-            fsNativeHeight = rect.height;
+            try {
+                // Build an offscreen canvas matching the viewport's current pixel size
+                const vpRect = viewport.getBoundingClientRect();
+                const canvas = document.createElement('canvas');
+                const scaleFactor = 2; // sharper export
+                canvas.width = Math.round(vpRect.width * scaleFactor);
+                canvas.height = Math.round(vpRect.height * scaleFactor);
+                const ctx = canvas.getContext('2d');
 
-            fullscreenStage.appendChild(viewport);
-            // Keep viewport at its native editor pixel size (do NOT stretch
-            // it to 100%/100% — that's what broke positions before). The
-            // fullscreenStage wrapper is what gets visually scaled up.
-            viewport.style.width = fsNativeWidth + 'px';
-            viewport.style.height = fsNativeHeight + 'px';
-            viewport.style.maxWidth = 'none';
-            viewport.style.maxHeight = 'none';
+                // Pick a supported mime type safely
+                const candidates = [
+                    'video/webm;codecs=vp9',
+                    'video/webm;codecs=vp8',
+                    'video/webm'
+                ];
+                let mimeType = candidates.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m));
+                if (!mimeType) mimeType = 'video/webm';
 
-            sizeFullscreenStage();
-            fullscreenOverlay.style.display = 'flex';
-            fsPlayHint.innerText = "Ab apna screen recorder start karein, phir ▶️ Play dabayein.";
-            fsPlayBtn.innerText = '▶️ Play';
-            window.addEventListener('resize', sizeFullscreenStage);
-        }
+                const canvasStream = canvas.captureStream(fps);
 
-        function toggleFullscreenPlay() {
-            if (isPlaying) {
-                pausePlayback();
-                fsPlayBtn.innerText = '▶️ Play';
-                fsPlayHint.innerText = "Pause ho gaya.";
-            } else {
+                // If we have audio, mix it into the recorded stream via a destination node
+                let combinedStream = canvasStream;
+                let audioDest = null;
+                if (audioBuffer) {
+                    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    audioDest = audioContext.createMediaStreamDestination();
+                    combinedStream = new MediaStream([
+                        ...canvasStream.getVideoTracks(),
+                        ...audioDest.stream.getAudioTracks()
+                    ]);
+                }
+
+                const mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+                let recordedChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                let finished = false;
+                mediaRecorder.onstop = () => {
+                    if (finished) return;
+                    finished = true;
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'AlightAnimationStudio.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }, 100);
+                    exportStatus.innerText = recordedChunks.length > 0
+                        ? "✅ Video Exported Successfully!"
+                        : "❌ Export failed — koi frame record nahi hua.";
+                    exportBtn.disabled = false;
+                    stopDrawLoop();
+                };
+
+                mediaRecorder.onerror = (ev) => {
+                    exportStatus.innerText = "❌ Export failed!";
+                    exportBtn.disabled = false;
+                    console.error('MediaRecorder error', ev);
+                };
+
+                // Draw loop: renders the current character SVG + meme overlay + background onto canvas
+                let drawLoopActive = true;
+                function stopDrawLoop() { drawLoopActive = false; }
+
+                async function drawFrame() {
+                    if (!drawLoopActive) return;
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Background
+                    const bgImg = viewport.style.backgroundImage;
+                    if (bgImg && bgImg !== 'none' && canvas._bgImageEl) {
+                        ctx.drawImage(canvas._bgImageEl, 0, 0, canvas.width, canvas.height);
+                    } else {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+
+                    // If meme overlay is showing, draw the meme video full-frame instead
+                    if (memeOverlay.style.display === 'flex' && memePlayer.readyState >= 2) {
+                        ctx.drawImage(memePlayer, 0, 0, canvas.width, canvas.height);
+                    } else {
+                        // Draw character (and any asset images) by rasterizing the live SVG via an Image
+                        await drawElementToCanvas(characterWrapper, ctx, vpRect, scaleFactor);
+                        const assets = viewport.querySelectorAll('.asset-wrapper');
+                        for (const assetEl of assets) {
+                            await drawElementToCanvas(assetEl, ctx, vpRect, scaleFactor);
+                        }
+                    }
+
+                    if (drawLoopActive) {
+                        requestAnimationFrame(drawFrame);
+                    }
+                }
+
+                // Cache background image element if set
+                if (viewport.style.backgroundImage && viewport.style.backgroundImage !== 'none') {
+                    const urlMatch = viewport.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+                    if (urlMatch) {
+                        const img = new Image();
+                        img.src = urlMatch[1];
+                        await new Promise(res => { img.onload = res; img.onerror = res; });
+                        canvas._bgImageEl = img;
+                    }
+                }
+
+                // Start audio into destination too (mirrors normal playback graph)
+                exportStatus.innerText = "⏳ Recording animation...";
                 currentPlayheadTime = 0;
-                startPlaybackAt(0);
-                fsPlayBtn.innerText = '⏸️ Pause';
-                fsPlayHint.innerText = "▶️ Playing — recording jaari rakhein.";
+
+                if (audioBuffer && audioDest) {
+                    if (activeSource) try { activeSource.stop(); } catch(e){}
+                    activeSource = audioContext.createBufferSource();
+                    activeSource.buffer = audioBuffer;
+                    activeSource.playbackRate.value = playbackSpeed;
+
+                    filterNode = audioContext.createBiquadFilter();
+                    filterNode.type = "peaking";
+                    filterNode.Q.value = 1.0;
+                    filterNode.gain.value = pitchSemiTones * 1.5;
+                    updateAudioFilterPitch();
+
+                    gainNode = audioContext.createGain();
+                    gainNode.gain.value = parseFloat(document.getElementById('volSlider').value);
+
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                    activeSource.connect(filterNode);
+                    filterNode.connect(gainNode);
+                    gainNode.connect(analyser);
+                    analyser.connect(audioContext.destination); // so user can also hear it while exporting
+                    analyser.connect(audioDest);
+
+                    activeSource.start(0);
+                }
+
+                startTime = audioContext ? audioContext.currentTime : 0;
+                isPlaying = true;
+                lastFrameTime = 0;
+                animLoopHandle = requestAnimationFrame(animateTimeline);
+
+                mediaRecorder.start(100);
+                drawFrame();
+
+                const totalDur = getTotalTimelineDuration() * 1000;
+                setTimeout(() => {
+                    isPlaying = false;
+                    if (activeSource) try { activeSource.stop(); } catch(e){}
+                    memePlayer.pause();
+                    resetPose();
+                    if (animLoopHandle) cancelAnimationFrame(animLoopHandle);
+                    playBtn.innerText = '▶️ Play Timeline';
+                    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                }, Math.max(totalDur, 300) + 400);
+
+            } catch (err) {
+                exportStatus.innerText = "❌ Export failed: " + (err && err.message ? err.message : 'unknown error');
+                exportBtn.disabled = false;
+                console.error(err);
             }
         }
 
-        function exitFullscreenPlayback() {
-            pausePlayback();
-            window.removeEventListener('resize', sizeFullscreenStage);
+        // Rasterize a draggable HTML element (which contains an SVG or <img>) onto the export canvas
+        // using its current on-screen transform, scaled into canvas coordinates.
+        async function drawElementToCanvas(el, ctx, vpRect, scaleFactor) {
+            try {
+                const elRect = el.getBoundingClientRect();
+                const relX = (elRect.left - vpRect.left) * scaleFactor;
+                const relY = (elRect.top - vpRect.top) * scaleFactor;
+                const w = elRect.width * scaleFactor;
+                const h = elRect.height * scaleFactor;
 
-            // Restore the viewport exactly where it was in the editor —
-            // including undoing the fixed pixel width/height we set for
-            // fullscreen, so it goes back to its normal responsive CSS sizing.
-            viewport.style.width = '';
-            viewport.style.height = '';
-            viewport.style.maxWidth = '';
-            viewport.style.maxHeight = '';
-            fullscreenStage.style.transform = '';
-            fullscreenStage.style.width = '';
-            fullscreenStage.style.height = '';
-            if (fsOriginalNextSibling) {
-                fsOriginalParent.insertBefore(viewport, fsOriginalNextSibling);
-            } else if (fsOriginalParent) {
-                fsOriginalParent.appendChild(viewport);
-            }
-            fullscreenOverlay.style.display = 'none';
-            viewport.style.pointerEvents = '';
-
-            // Bring back the selection outline for editing.
-            if (fsPreviouslySelected) {
-                fsPreviouslySelected.forEach(el => el.classList.add('selected'));
-                fsPreviouslySelected = null;
+                const svgEl = el.querySelector('svg');
+                if (svgEl) {
+                    const svgString = new XMLSerializer().serializeToString(svgEl);
+                    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(svgBlob);
+                    const img = new Image();
+                    await new Promise((resolve) => {
+                        img.onload = () => { ctx.drawImage(img, relX, relY, w, h); URL.revokeObjectURL(url); resolve(); };
+                        img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+                        img.src = url;
+                    });
+                } else {
+                    const imgTag = el.querySelector('img');
+                    if (imgTag && imgTag.complete) {
+                        ctx.drawImage(imgTag, relX, relY, w, h);
+                    }
+                }
+            } catch (e) {
+                // Skip frame silently on transient draw errors so export keeps running
             }
         }
 
-
+        // ============ DRAG / TRANSFORM (whole body & assets) ============
         function makeDraggable(element) {
             let isDragging = false;
-            let startX, startY, currentX = 100, currentY = 40, currentZ = 0, currentScale = 1;
+            let startX, startY, currentX = 100, currentY = 40, currentScale = 1;
 
             element.addEventListener('pointerdown', (e) => {
                 isDragging = true;
                 selectElement(element);
                 const coords = getTransformValues(element);
-                currentX = coords.x; currentY = coords.y; currentZ = coords.z; currentScale = coords.s;
+                currentX = coords.x; currentY = coords.y; currentScale = coords.s;
                 startX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
                 startY = (e.touches ? e.touches[0].clientY : e.clientY) - currentY;
                 window.addEventListener('pointermove', onPointerMove);
@@ -1056,7 +1382,13 @@
                 if (!isDragging) return;
                 currentX = (e.touches ? e.touches[0].clientX : e.clientX) - startX;
                 currentY = (e.touches ? e.touches[0].clientY : e.clientY) - startY;
-                element.style.transform = `translate3d(${currentX}px, ${currentY}px, ${currentZ}px) scale(${currentScale})`;
+                element.style.transform = `translate3d(${currentX}px, ${currentY}px, 0px) scale(${currentScale})`;
+                if (element === characterWrapper) {
+                    document.getElementById('posXSlider').value = currentX;
+                    document.getElementById('posYSlider').value = currentY;
+                    document.getElementById('xVal').innerText = `${Math.round(currentX)}px`;
+                    document.getElementById('yVal').innerText = `${Math.round(currentY)}px`;
+                }
             }
 
             function onPointerUp() {
@@ -1079,26 +1411,23 @@
             return {
                 x: match3D ? parseFloat(match3D[1]) : 0,
                 y: match3D ? parseFloat(match3D[2]) : 0,
-                z: match3D ? parseFloat(match3D[3]) : 0,
                 s: matchScale ? parseFloat(matchScale[1]) : 1
             };
         }
 
         function applyTransformFromSliders() {
-            if(!selectedElement) return;
-            document.getElementById('xVal').innerText = posXSlider.value + 'px';
-            document.getElementById('yVal').innerText = posYSlider.value + 'px';
-            document.getElementById('zVal').innerText = posZSlider.value + 'px';
-            document.getElementById('sVal').innerText = parseFloat(scaleSlider.value).toFixed(1) + 'x';
-            selectedElement.style.transform = `translate3d(${posXSlider.value}px, ${posYSlider.value}px, ${posZSlider.value}px) scale(${scaleSlider.value})`;
+            if (!characterWrapper) return;
+            characterWrapper.style.transform = `translate3d(${posXSlider.value}px, ${posYSlider.value}px, 0px) scale(${scaleSlider.value})`;
+            document.getElementById('xVal').innerText = `${posXSlider.value}px`;
+            document.getElementById('yVal').innerText = `${posYSlider.value}px`;
+            document.getElementById('sVal').innerText = `${parseFloat(scaleSlider.value).toFixed(1)}x`;
         }
 
         document.getElementById('posXSlider').oninput = applyTransformFromSliders;
         document.getElementById('posYSlider').oninput = applyTransformFromSliders;
-        document.getElementById('posZSlider').oninput = applyTransformFromSliders;
         document.getElementById('scaleSlider').oninput = applyTransformFromSliders;
 
-        makeDraggable(document.getElementById('characterWrapper'));
+        makeDraggable(characterWrapper);
 
         function setRatio(ratio, e) {
             document.querySelectorAll('#tab-ratio .btn-opt').forEach(b => b.classList.remove('active'));
