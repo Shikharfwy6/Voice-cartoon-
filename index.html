@@ -64,7 +64,7 @@
             box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
             border-radius: 6px;
             overflow: hidden;
-            touch-action: none; /* Mobile touch gesture support */
+            touch-action: none;
         }
 
         /* Aspect Ratios */
@@ -72,7 +72,7 @@
         .ratio-9-16 { height: 100%; max-height: 480px; aspect-ratio: 9/16; }
         .ratio-1-1  { width: 100%; max-width: 380px; aspect-ratio: 1/1; }
 
-        /* Draggable Transform Items */
+        /* Draggable Elements */
         .draggable-element {
             position: absolute;
             top: 0;
@@ -104,9 +104,9 @@
             pointer-events: none;
         }
 
-        /* Bottom Controls Drawer (Alight Motion Style) */
+        /* Bottom Controls Drawer */
         .bottom-panel {
-            height: 250px;
+            height: 270px;
             background: #181920;
             border-top: 1px solid #282a36;
             display: flex;
@@ -150,11 +150,28 @@
             display: block;
         }
 
-        /* Control Rows & Grids */
+        /* UI Slider Groups & Controls */
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #a4b0be;
+            margin-bottom: 4px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: #ff4757;
+        }
+
         .control-row {
             display: flex;
             gap: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             align-items: center;
         }
 
@@ -225,7 +242,6 @@
             100% { transform: scale(1); }
         }
 
-        /* Layers Panel */
         .layer-item {
             display: flex;
             align-items: center;
@@ -237,11 +253,7 @@
             font-size: 0.85rem;
         }
 
-        .layer-item.active {
-            border: 1px solid #ff4757;
-        }
-
-        /* Dynamic SVG Animations */
+        /* SVG Joints setup */
         #mouth { transform-origin: center center; transform-box: fill-box; }
         #left-arm { transform-origin: top right; transform-box: fill-box; }
         #right-arm { transform-origin: top left; transform-box: fill-box; }
@@ -252,15 +264,12 @@
 </head>
 <body>
 
-    <!-- Header -->
     <header class="app-header">
         <div class="app-title">🎬 2D Animation Studio</div>
     </header>
 
-    <!-- Canvas Workspace Area -->
     <main class="workspace">
         <div id="viewport" class="viewport ratio-16-9">
-            <!-- Character Drag Target Layer -->
             <div id="characterWrapper" class="draggable-element character-wrapper selected" style="transform: translate(100px, 40px) scale(1);">
                 <svg viewBox="-50 -20 450 500" xmlns="http://www.w3.org/2000/svg">
                     <g id="body" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
@@ -304,31 +313,64 @@
         </div>
     </main>
 
-    <!-- Bottom Editing Drawer Panel -->
     <footer class="bottom-panel">
         <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('voice', event)">🎤 Voice & Sync</button>
-            <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Add Assets & BG</button>
-            <button class="tab-btn" onclick="switchTab('transform', event)">📐 Size & Scale</button>
+            <button class="tab-btn active" onclick="switchTab('voice', event)">🎙️ Advanced Voice FX</button>
+            <button class="tab-btn" onclick="switchTab('transform', event)">📐 Position & Scale (X,Y,Z)</button>
+            <button class="tab-btn" onclick="switchTab('assets', event)">🖼️ Assets & BG</button>
             <button class="tab-btn" onclick="switchTab('ratio', event)">📱 Aspect Ratio</button>
             <button class="tab-btn" onclick="switchTab('layers', event)">📚 Layers Stack</button>
         </div>
 
-        <!-- Tab 1: Voice -->
+        <!-- Tab 1: Voice FX -->
         <div id="tab-voice" class="tab-content active">
-            <p style="font-size:0.8rem; color:#a4b0be; margin-bottom:8px;">Select Pitch Preset:</p>
-            <div class="btn-grid" style="margin-bottom:12px;">
-                <div class="btn-opt active" onclick="setVoice('normal', event)">Normal</div>
-                <div class="btn-opt" onclick="setVoice('kid', event)">Kid</div>
-                <div class="btn-opt" onclick="setVoice('monster', event)">Monster</div>
+            <div class="control-group">
+                <div class="slider-label"><span>Pitch Control</span><span id="pitchVal">1.0x</span></div>
+                <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
             </div>
+
+            <div class="control-group">
+                <div class="slider-label"><span>Speed / Tempo</span><span id="speedVal">1.0x</span></div>
+                <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+            </div>
+
+            <div class="control-group">
+                <div class="slider-label"><span>Volume Level</span><span id="volVal">100%</span></div>
+                <input type="range" id="volSlider" min="0" max="2" step="0.1" value="1.0">
+            </div>
+
             <div class="control-row">
-                <button id="recordBtn" class="btn-record">🎤 Start Recording</button>
-                <button id="playBtn" class="btn-play" disabled>▶️ Sync & Play</button>
+                <label style="font-size:0.8rem; color:#a4b0be; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="telephonicFx"> 📞 Walkie-Talkie / Robot Filter FX
+                </label>
+            </div>
+
+            <div class="control-row">
+                <button id="recordBtn" class="btn-record">🎤 Record Voice</button>
+                <button id="playBtn" class="btn-play" disabled>▶️ Sync & Play Voice</button>
             </div>
         </div>
 
-        <!-- Tab 2: Assets & Background -->
+        <!-- Tab 2: Transform (X, Y, Z Axis) -->
+        <div id="tab-transform" class="tab-content">
+            <div class="control-group">
+                <div class="slider-label"><span>X Axis (Left / Right)</span><span id="xVal">100px</span></div>
+                <input type="range" id="posXSlider" min="-200" max="600" value="100">
+            </div>
+
+            <div class="control-group">
+                <div class="slider-label"><span>Y Axis (Up / Down)</span><span id="yVal">40px</span></div>
+                <input type="range" id="posYSlider" min="-200" max="400" value="40">
+            </div>
+
+            <div class="control-group">
+                <div class="slider-label"><span>Z Axis (Scale / Zoom)</span><span id="zVal">1.0x</span></div>
+                <input type="range" id="scaleSlider" min="0.2" max="2.5" step="0.1" value="1.0">
+            </div>
+            <p style="font-size:0.75rem; color:#a4b0be;">💡 Tip: Aap screen par touch karke direct finger se bhi position adjust kar sakte hain.</p>
+        </div>
+
+        <!-- Tab 3: Assets & BG -->
         <div id="tab-assets" class="tab-content">
             <div class="control-row">
                 <label class="file-btn">
@@ -344,13 +386,6 @@
             </div>
         </div>
 
-        <!-- Tab 3: Scale (Z-Axis) -->
-        <div id="tab-transform" class="tab-content">
-            <p style="font-size:0.8rem; color:#a4b0be; margin-bottom:8px;">Scale/Size (Z-Axis):</p>
-            <input type="range" id="scaleSlider" min="0.3" max="2.5" step="0.1" value="1" style="width:100%; margin-bottom:10px;">
-            <p style="font-size:0.75rem; color:#a4b0be;">💡 Tip: Canvas par apne finger se touch karke direct position set karein.</p>
-        </div>
-
         <!-- Tab 4: Aspect Ratio -->
         <div id="tab-ratio" class="tab-content">
             <div class="btn-grid">
@@ -360,28 +395,30 @@
             </div>
         </div>
 
-        <!-- Tab 5: Layers Panel -->
+        <!-- Tab 5: Layers Stack -->
         <div id="tab-layers" class="tab-content">
             <div id="layerList">
                 <div class="layer-item active">
                     <span>🎭 Main Character</span>
                     <span>Active</span>
                 </div>
-                <div class="layer-item">
-                    <span>🖼️ Background</span>
-                    <span>Fixed</span>
-                </div>
             </div>
         </div>
     </footer>
 
     <script>
-        let currentPitch = 1.0;
-        let mediaRecorder, audioChunks = [], audioContext, audioBuffer, activeSource, animationFrameId;
+        let audioContext, audioBuffer, activeSource, animationFrameId;
         let selectedElement = document.getElementById('characterWrapper');
 
         const viewport = document.getElementById('viewport');
+        const posXSlider = document.getElementById('posXSlider');
+        const posYSlider = document.getElementById('posYSlider');
         const scaleSlider = document.getElementById('scaleSlider');
+
+        const pitchSlider = document.getElementById('pitchSlider');
+        const speedSlider = document.getElementById('speedSlider');
+        const volSlider = document.getElementById('volSlider');
+        const telephonicFx = document.getElementById('telephonicFx');
 
         // Tab Switching Engine
         function switchTab(tabId, e) {
@@ -391,14 +428,10 @@
             document.getElementById(`tab-${tabId}`).classList.add('active');
         }
 
-        // Voice Presets
-        function setVoice(type, e) {
-            document.querySelectorAll('#tab-voice .btn-opt').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            if(type === 'normal') currentPitch = 1.0;
-            if(type === 'kid') currentPitch = 1.6;
-            if(type === 'monster') currentPitch = 0.6;
-        }
+        // Voice Controls Real-time Displays
+        pitchSlider.oninput = (e) => document.getElementById('pitchVal').innerText = `${e.target.value}x`;
+        speedSlider.oninput = (e) => document.getElementById('speedVal').innerText = `${e.target.value}x`;
+        volSlider.oninput = (e) => document.getElementById('volVal').innerText = `${Math.round(e.target.value * 100)}%`;
 
         // Aspect Ratio
         function setRatio(ratio, e) {
@@ -419,7 +452,7 @@
             }
         });
 
-        // Add Custom PNG/SVG Asset Layer
+        // Add Custom PNG/SVG Asset
         document.getElementById('assetUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -434,7 +467,6 @@
                     makeDraggable(assetDiv);
                     selectElement(assetDiv);
 
-                    // Add to Layers List
                     const layerList = document.getElementById('layerList');
                     const layerItem = document.createElement('div');
                     layerItem.className = 'layer-item';
@@ -445,21 +477,47 @@
             }
         });
 
-        // Touch & Drag System (Alight Motion Touch Support)
+        // Helper: Extract Translate/Scale
+        function getTransformValues(el) {
+            const transform = el.style.transform;
+            const matchTranslate = transform.match(/translate\(([^px]+)px,\s*([^px]+)px\)/);
+            const matchScale = transform.match(/scale\(([^)]+)\)/);
+            
+            let x = matchTranslate ? parseFloat(matchTranslate[1]) : 0;
+            let y = matchTranslate ? parseFloat(matchTranslate[2]) : 0;
+            let s = matchScale ? parseFloat(matchScale[1]) : 1;
+            return { x, y, s };
+        }
+
+        // Sync Transform Sliders with Selected Element
+        function updateTransformSliders(x, y, s) {
+            posXSlider.value = Math.round(x);
+            posYSlider.value = Math.round(y);
+            scaleSlider.value = s;
+
+            document.getElementById('xVal').innerText = `${Math.round(x)}px`;
+            document.getElementById('yVal').innerText = `${Math.round(y)}px`;
+            document.getElementById('zVal').innerText = `${parseFloat(s).toFixed(1)}x`;
+        }
+
+        function applyTransformFromSliders() {
+            if(!selectedElement) return;
+            const x = posXSlider.value;
+            const y = posYSlider.value;
+            const s = scaleSlider.value;
+
+            selectedElement.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+            updateTransformSliders(x, y, s);
+        }
+
+        posXSlider.oninput = applyTransformFromSliders;
+        posYSlider.oninput = applyTransformFromSliders;
+        scaleSlider.oninput = applyTransformFromSliders;
+
+        // Touch & Drag System
         function makeDraggable(element) {
             let isDragging = false;
             let startX, startY, currentX = 100, currentY = 40, currentScale = 1;
-
-            function getTransformValues(el) {
-                const transform = el.style.transform;
-                const matchTranslate = transform.match(/translate\(([^px]+)px,\s*([^px]+)px\)/);
-                const matchScale = transform.match(/scale\(([^)]+)\)/);
-                
-                let x = matchTranslate ? parseFloat(matchTranslate[1]) : 0;
-                let y = matchTranslate ? parseFloat(matchTranslate[2]) : 0;
-                let s = matchScale ? parseFloat(matchScale[1]) : 1;
-                return { x, y, s };
-            }
 
             function onPointerDown(e) {
                 isDragging = true;
@@ -486,6 +544,7 @@
                 currentY = clientY - startY;
 
                 element.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentScale})`;
+                updateTransformSliders(currentX, currentY, currentScale);
             }
 
             function onPointerUp() {
@@ -501,22 +560,15 @@
             document.querySelectorAll('.draggable-element').forEach(e => e.classList.remove('selected'));
             selectedElement = el;
             selectedElement.classList.add('selected');
+
+            const coords = getTransformValues(selectedElement);
+            updateTransformSliders(coords.x, coords.y, coords.s);
         }
 
         makeDraggable(document.getElementById('characterWrapper'));
 
-        // Scale Control (Z-Axis)
-        scaleSlider.addEventListener('input', (e) => {
-            if(!selectedElement) return;
-            const transform = selectedElement.style.transform;
-            const matchTranslate = transform.match(/translate\(([^px]+)px,\s*([^px]+)px\)/);
-            let x = matchTranslate ? matchTranslate[1] : 0;
-            let y = matchTranslate ? matchTranslate[2] : 0;
-            
-            selectedElement.style.transform = `translate(${x}px, ${y}px) scale(${e.target.value})`;
-        });
-
-        // Recording & Animation Sync Engine
+        // Audio Recording & Advanced DSP Processing
+        let mediaRecorder, audioChunks = [];
         const recordBtn = document.getElementById('recordBtn');
         const playBtn = document.getElementById('playBtn');
 
@@ -544,7 +596,7 @@
                 }
             } else {
                 mediaRecorder.stop();
-                recordBtn.innerText = '🎤 Start Recording';
+                recordBtn.innerText = '🎤 Record Voice';
                 recordBtn.classList.remove('recording');
             }
         });
@@ -558,15 +610,37 @@
             const source = audioContext.createBufferSource();
             activeSource = source;
             source.buffer = audioBuffer;
-            source.playbackRate.value = currentPitch;
 
+            // Apply Pitch and Speed Controls
+            source.playbackRate.value = parseFloat(pitchSlider.value) * parseFloat(speedSlider.value);
+
+            // Volume Control Node
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = parseFloat(volSlider.value);
+
+            // Audio Filter Effect Node
+            let lastNode = source;
+
+            if (telephonicFx.checked) {
+                const filter = audioContext.createBiquadFilter();
+                filter.type = "bandpass";
+                filter.frequency.value = 1000;
+                filter.Q.value = 3.0;
+                lastNode.connect(filter);
+                lastNode = filter;
+            }
+
+            lastNode.connect(gainNode);
+
+            // Visualizer Analyser
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
             analyser.smoothingTimeConstant = 0.5;
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-            source.connect(analyser);
+            gainNode.connect(analyser);
             analyser.connect(audioContext.destination);
+
             source.start(0);
 
             function animate() {
