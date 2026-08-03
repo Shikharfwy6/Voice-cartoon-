@@ -80,6 +80,13 @@
         .ratio-9-16 { height: 100%; max-height: 480px; aspect-ratio: 9/16; }
         .ratio-1-1  { width: 100%; max-width: 380px; aspect-ratio: 1/1; }
 
+        #fullscreenStageWrap .viewport {
+            max-width: 96vw;
+            max-height: 82vh;
+            box-shadow: none;
+            border-radius: 0;
+        }
+
         .draggable-element {
             position: absolute;
             top: 0;
@@ -456,17 +463,17 @@
 
         /* Side profile view joints */
         #smouth { transform-origin: center center; transform-box: fill-box; }
-        #swaist { transform-origin: 180px 270px; }
-        #sneck { transform-origin: 181px 215px; }
-        #shead { transform-origin: 181px 130px; }
-        #s-near-arm { transform-origin: 195px 215px; }
-        #s-near-forearm { transform-origin: 215px 255px; }
-        #s-far-arm { transform-origin: 178px 215px; }
-        #s-far-forearm { transform-origin: 190px 258px; }
-        #s-near-leg { transform-origin: 188px 330px; }
-        #s-near-shin { transform-origin: 195px 375px; }
-        #s-far-leg { transform-origin: 172px 330px; }
-        #s-far-shin { transform-origin: 168px 375px; }
+        #swaist { transform-origin: 178px 270px; }
+        #sneck { transform-origin: 178px 214px; }
+        #shead { transform-origin: 178px 130px; }
+        #s-near-arm { transform-origin: 195px 213px; }
+        #s-near-forearm { transform-origin: 210px 253px; }
+        #s-far-arm { transform-origin: 172px 213px; }
+        #s-far-forearm { transform-origin: 178px 256px; }
+        #s-near-leg { transform-origin: 186px 330px; }
+        #s-near-shin { transform-origin: 193px 375px; }
+        #s-far-leg { transform-origin: 170px 330px; }
+        #s-far-shin { transform-origin: 163px 375px; }
 
         .joint-active { cursor: grab; }
         .joint-active:active { cursor: grabbing; }
@@ -616,7 +623,7 @@
                                     <path d="M 90 120 C 70 80, 90 30, 140 30 C 160 10, 200 10, 220 30 C 260 20, 280 70, 260 120 C 240 100, 240 70, 210 60 C 180 50, 130 60, 90 120 Z" fill="url(#hairShade)" />
                                     <path d="M 105 65 Q 130 40 160 55" stroke="#3d2a5c" stroke-width="2.5" fill="none" opacity="0.7"/>
                                     <path d="M 190 55 Q 220 42 245 68" stroke="#3d2a5c" stroke-width="2.5" fill="none" opacity="0.7"/>
-                                    <ellipse id="mouth" cx="175" cy="165" rx="16" ry="4" fill="#7a2530" />
+                                    <ellipse id="mouth" cx="175" cy="165" rx="14" ry="1.5" fill="#7a2530" style="transform-origin: 175px 165px; transform-box: fill-box;" />
                                 </g>
                             </g>
                         </g>
@@ -625,89 +632,91 @@
 
                     <!-- ===== SIDE PROFILE VIEW (for walk/run cycles) — hidden by default ===== -->
                     <g id="sideView" style="display:none;">
-                        <ellipse cx="175" cy="428" rx="70" ry="13" fill="#000000" opacity="0.32"/>
+                        <ellipse cx="178" cy="428" rx="75" ry="13" fill="#000000" opacity="0.32"/>
 
                         <g id="sbody" stroke="#1a1108" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#dropShadow)">
                             <g id="swaist">
 
                                 <!-- FAR LEG (drawn first so it sits behind the near leg) -->
                                 <g id="s-far-leg">
-                                    <path d="M 172 330 L 168 375" fill="none" stroke-width="22" stroke="url(#shortsShade)"/>
-                                    <path d="M 172 330 L 168 375" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                    <path d="M 170 330 L 163 375" fill="none" stroke-width="22" stroke="url(#shortsShade)"/>
+                                    <path d="M 170 330 L 163 375" fill="none" stroke-width="3.5" stroke="#1a1108"/>
                                     <g id="s-far-shin">
-                                        <path d="M 168 375 L 160 415" fill="none" stroke-width="17" stroke="url(#skinShade)"/>
-                                        <path d="M 168 375 L 160 415" fill="none" stroke-width="3.5" stroke="#1a1108"/>
-                                        <path d="M 140 415 Q 160 406 182 415 L 182 424 Q 160 430 140 424 Z" fill="#2b2b2b" stroke="#1a1108" stroke-width="3"/>
+                                        <path d="M 163 375 L 155 415" fill="none" stroke-width="17" stroke="url(#skinShade)"/>
+                                        <path d="M 163 375 L 155 415" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                        <path d="M 133 413 Q 155 405 178 413 L 178 423 Q 155 429 133 423 Z" fill="#2b2b2b" stroke="#1a1108" stroke-width="3"/>
                                     </g>
                                 </g>
 
                                 <!-- FAR ARM (behind torso) -->
                                 <g id="s-far-arm">
-                                    <path d="M 178 215 L 190 258" fill="none" stroke-width="19" stroke="url(#shirtShade)"/>
-                                    <path d="M 178 215 L 190 258" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                    <path d="M 172 213 L 178 256" fill="none" stroke-width="19" stroke="url(#shirtShade)"/>
+                                    <path d="M 172 213 L 178 256" fill="none" stroke-width="3.5" stroke="#1a1108"/>
                                     <g id="s-far-forearm">
-                                        <path d="M 190 258 L 185 288" fill="none" stroke-width="16" stroke="url(#skinShade)"/>
-                                        <path d="M 190 258 L 185 288" fill="none" stroke-width="3.5" stroke="#1a1108"/>
-                                        <circle cx="185" cy="291" r="10" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
+                                        <path d="M 178 256 L 175 288" fill="none" stroke-width="16" stroke="url(#skinShade)"/>
+                                        <path d="M 178 256 L 175 288" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                        <circle cx="175" cy="291" r="10" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
                                     </g>
                                 </g>
 
-                                <!-- TORSO (side silhouette) -->
-                                <path d="M 155 210 L 205 210 L 200 330 L 160 330 Z" fill="url(#shirtShade)"/>
-                                <path d="M 155 210 L 205 210 L 200 330 L 160 330 Z" fill="url(#limbShadeV)"/>
-                                <rect x="158" y="270" width="44" height="35" fill="#8c3245" stroke="#1a1108" stroke-width="3"/>
-                                <rect x="158" y="270" width="44" height="35" fill="url(#limbShadeV)"/>
+                                <!-- TORSO (side silhouette, same width feel as front view: ~115px worth of visual mass) -->
+                                <path d="M 138 210 L 218 210 L 210 330 L 146 330 Z" fill="url(#shirtShade)"/>
+                                <path d="M 138 210 L 218 210 L 210 330 L 146 330 Z" fill="url(#limbShadeV)"/>
+                                <rect x="142" y="270" width="72" height="35" fill="#8c3245" stroke="#1a1108" stroke-width="3"/>
+                                <rect x="142" y="270" width="72" height="35" fill="url(#limbShadeV)"/>
+                                <!-- chest/back contour line for depth -->
+                                <path d="M 146 220 Q 178 226 210 220" stroke="#00000022" stroke-width="2" fill="none"/>
 
                                 <!-- NEAR LEG (front, on top) -->
                                 <g id="s-near-leg">
-                                    <path d="M 188 330 L 195 375" fill="none" stroke-width="24" stroke="url(#shortsShade)"/>
-                                    <path d="M 188 330 L 195 375" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                    <path d="M 186 330 L 193 375" fill="none" stroke-width="24" stroke="url(#shortsShade)"/>
+                                    <path d="M 186 330 L 193 375" fill="none" stroke-width="3.5" stroke="#1a1108"/>
                                     <g id="s-near-shin">
-                                        <path d="M 195 375 L 205 415" fill="none" stroke-width="19" stroke="url(#skinShade)"/>
-                                        <path d="M 195 375 L 205 415" fill="none" stroke-width="3.5" stroke="#1a1108"/>
-                                        <path d="M 178 415 Q 205 404 232 415 L 232 426 Q 205 433 178 426 Z" fill="#3d3d3d" stroke="#1a1108" stroke-width="3"/>
+                                        <path d="M 193 375 L 200 415" fill="none" stroke-width="19" stroke="url(#skinShade)"/>
+                                        <path d="M 193 375 L 200 415" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                        <path d="M 176 415 Q 200 405 225 415 L 225 425 Q 200 432 176 425 Z" fill="#3d3d3d" stroke="#1a1108" stroke-width="3"/>
                                     </g>
                                 </g>
 
                                 <!-- NEAR ARM (front, on top) -->
                                 <g id="s-near-arm">
-                                    <path d="M 195 215 L 215 255" fill="none" stroke-width="21" stroke="url(#shirtShade)"/>
-                                    <path d="M 195 215 L 215 255" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                    <path d="M 195 213 L 210 253" fill="none" stroke-width="21" stroke="url(#shirtShade)"/>
+                                    <path d="M 195 213 L 210 253" fill="none" stroke-width="3.5" stroke="#1a1108"/>
                                     <g id="s-near-forearm">
-                                        <path d="M 215 255 L 220 288" fill="none" stroke-width="18" stroke="url(#skinShade)"/>
-                                        <path d="M 215 255 L 220 288" fill="none" stroke-width="3.5" stroke="#1a1108"/>
-                                        <circle cx="220" cy="291" r="12" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
+                                        <path d="M 210 253 L 213 288" fill="none" stroke-width="18" stroke="url(#skinShade)"/>
+                                        <path d="M 210 253 L 213 288" fill="none" stroke-width="3.5" stroke="#1a1108"/>
+                                        <circle cx="213" cy="291" r="12" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
                                     </g>
                                 </g>
 
                                 <!-- NECK + HEAD (profile) -->
                                 <g id="sneck">
-                                    <rect x="168" y="185" width="26" height="30" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3.5"/>
+                                    <rect x="163" y="188" width="30" height="26" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3.5"/>
 
                                     <g id="shead">
-                                        <!-- profile skull + jaw + nose silhouette -->
-                                        <path d="M 145 130 C 140 165, 150 195, 178 200 C 200 198, 218 185, 222 160 C 226 138, 218 115, 222 100 C 224 80, 205 65, 178 65 C 152 65, 140 90, 145 130 Z"
+                                        <!-- profile skull + jaw + nose silhouette, facing right, anchored above the neck -->
+                                        <path d="M 140 135 C 136 168, 148 196, 175 199 C 196 197, 212 183, 217 158 C 220 138, 214 118, 217 102 C 219 80, 200 62, 174 62 C 148 62, 134 92, 140 135 Z"
                                               fill="url(#skinShade)"/>
-                                        <path d="M 145 130 C 140 165, 150 195, 178 200 C 200 198, 218 185, 222 160 C 226 138, 218 115, 222 100 C 224 80, 205 65, 178 65 C 152 65, 140 90, 145 130 Z"
+                                        <path d="M 140 135 C 136 168, 148 196, 175 199 C 196 197, 212 183, 217 158 C 220 138, 214 118, 217 102 C 219 80, 200 62, 174 62 C 148 62, 134 92, 140 135 Z"
                                               fill="url(#headShade)"/>
                                         <!-- nose bump -->
-                                        <path d="M 220 128 Q 232 134 224 146" fill="none" stroke="#1a1108" stroke-width="3.5"/>
-                                        <ellipse cx="200" cy="150" rx="12" ry="8" fill="url(#cheekBlush)"/>
+                                        <path d="M 215 130 Q 227 136 219 148" fill="none" stroke="#1a1108" stroke-width="3.5"/>
+                                        <ellipse cx="195" cy="152" rx="11" ry="7" fill="url(#cheekBlush)"/>
 
                                         <!-- eye (single, profile) -->
-                                        <ellipse cx="198" cy="118" rx="14" ry="12" fill="#fff"/>
-                                        <circle cx="203" cy="119" r="6" fill="#1a1108"/>
-                                        <circle cx="205" cy="116" r="1.8" fill="#fff"/>
-                                        <path d="M 185 105 Q 200 96 214 104" fill="none" stroke="#1a1108" stroke-width="3.5"/>
+                                        <ellipse cx="193" cy="120" rx="13" ry="11" fill="#fff"/>
+                                        <circle cx="198" cy="121" r="5.5" fill="#1a1108"/>
+                                        <circle cx="200" cy="118" r="1.6" fill="#fff"/>
+                                        <path d="M 181 107 Q 195 99 208 106" fill="none" stroke="#1a1108" stroke-width="3.5"/>
 
                                         <!-- ear -->
-                                        <ellipse cx="158" cy="128" rx="9" ry="13" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
+                                        <ellipse cx="151" cy="130" rx="8" ry="12" fill="url(#skinShade)" stroke="#1a1108" stroke-width="3"/>
 
-                                        <!-- hair (side silhouette, swept back) -->
-                                        <path d="M 138 128 C 132 95, 140 55, 178 50 C 205 48, 228 65, 224 95 C 222 80, 205 68, 185 68 C 165 68, 150 85, 148 110 C 165 100, 190 100, 205 108 C 195 92, 205 78, 225 90 C 235 100, 230 118, 222 128 C 226 108, 210 95, 190 100 C 205 92, 200 80, 182 82 C 160 84, 148 105, 150 128 Z"
+                                        <!-- hair (side silhouette, swept back, sits on top of skull path) -->
+                                        <path d="M 133 133 C 128 100, 138 60, 174 55 C 199 53, 220 68, 217 96 C 214 82, 199 71, 181 71 C 162 71, 148 87, 145 112 C 161 103, 184 103, 198 111 C 189 96, 198 82, 217 93 C 226 102, 222 118, 214 128 C 218 110, 203 98, 185 102 C 199 95, 194 84, 177 86 C 156 88, 145 108, 147 133 Z"
                                               fill="url(#hairShade)"/>
 
-                                        <ellipse id="smouth" cx="210" cy="158" rx="4" ry="12" fill="#7a2530"/>
+                                        <ellipse id="smouth" cx="205" cy="160" rx="1.5" ry="7" fill="#7a2530" style="transform-origin: 205px 160px; transform-box: fill-box;"/>
                                     </g>
                                 </g>
                             </g>
@@ -925,12 +934,37 @@
                 <div class="btn-opt" onclick="setRatio('9-16', event)">9:16 Shorts</div>
                 <div class="btn-opt" onclick="setRatio('1-1', event)">1:1 Square</div>
             </div>
+
+            <div class="section-label">✅ Recommended: Full Screen Record</div>
+            <div class="control-row">
+                <button id="fullscreenBtn" class="btn-play" onclick="startFullscreenPlayback()">🖥️ Full Screen Play (record with phone screen recorder)</button>
+            </div>
+            <div class="status-text" style="color:#a4b0be; text-align:left; font-size:0.7rem; margin-bottom: 12px;">
+                💡 Ye button animation ko poori screen par clean (bina UI ke) chalayega. Play hote hi apna phone ka screen recorder ON kar lo — koi export error nahi aayega, jo dikhega wahi record hoga.
+            </div>
+
+            <div class="section-label">⚙️ Alternate: Direct File Export</div>
             <div class="control-row">
                 <button id="exportBtn" class="btn-export" onclick="exportVideo()">💾 Export Animation Video (.webm)</button>
+            </div>
+            <div class="status-text" style="color:#a4b0be; text-align:left; font-size:0.7rem;">
+                💡 Kuch browsers mein ye fail ho sakta hai (device/browser support par depend karta hai). Fail ho to upar wala Full Screen Play + screen recorder use karo.
             </div>
             <div id="exportStatus" class="status-text" style="margin-top: 5px;"></div>
         </div>
     </footer>
+
+    <!-- ===== FULLSCREEN CLEAN PLAYBACK OVERLAY (for screen-recording) ===== -->
+    <div id="fullscreenOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; flex-direction:column; align-items:center; justify-content:center;">
+        <div id="fullscreenStageWrap" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; position:relative;">
+            <!-- The live viewport gets moved in here during fullscreen playback -->
+        </div>
+        <div id="fullscreenControls" style="position:fixed; bottom:20px; left:0; width:100%; display:flex; justify-content:center; gap:12px; z-index:10000;">
+            <button class="btn-play" style="width:auto; padding:12px 24px;" onclick="fullscreenPlayPause()" id="fsPlayBtn">▶️ Play</button>
+            <button class="btn-tool danger" style="padding:12px 24px;" onclick="exitFullscreenPlayback()">✖️ Exit Full Screen</button>
+        </div>
+    </div>
+
 
     <script>
         // ============ STATE ============
@@ -1682,15 +1716,28 @@
                     let sum = dataArray.reduce((a, b) => a + b, 0);
                     let avg = (sum / dataArray.length) * mouthSensitivity;
 
-                    const mouth = document.getElementById('mouth');
-                    if (mouth) mouth.style.transform = `scaleY(${Math.min(1 + avg / 15, 4)})`;
+                    // Silence threshold: below this, treat as no speech and keep mouth closed
+                    const SILENCE_THRESHOLD = 6;
+                    const mouth = document.getElementById(activeCharView === 'side' ? 'smouth' : 'mouth');
+                    if (mouth) {
+                        if (avg < SILENCE_THRESHOLD) {
+                            mouth.style.transform = 'scaleY(1)';
+                        } else {
+                            const openAmount = Math.min((avg - SILENCE_THRESHOLD) / 12, 5);
+                            mouth.style.transform = `scaleY(${1 + openAmount})`;
+                        }
+                    }
 
                     // Subtle idle body sway driven by voice energy, layered on top of manual pose
-                    setAnimRot('left-arm', avg / 8);
-                    setAnimRot('right-arm', -avg / 10);
+                    if (activeCharView === 'front') {
+                        setAnimRot('left-arm', avg / 8);
+                        setAnimRot('right-arm', -avg / 10);
+                    }
                 } else {
-                    const mouth = document.getElementById('mouth');
-                    if (mouth) mouth.style.transform = 'scaleY(1)';
+                    const mouthF = document.getElementById('mouth');
+                    const mouthS = document.getElementById('smouth');
+                    if (mouthF) mouthF.style.transform = 'scaleY(1)';
+                    if (mouthS) mouthS.style.transform = 'scaleY(1)';
                     setAnimRot('left-arm', 0);
                     setAnimRot('right-arm', 0);
                 }
@@ -1707,13 +1754,69 @@
         }
 
         function resetPose() {
-            const mouth = document.getElementById('mouth');
-            if (mouth) mouth.style.transform = 'scaleY(1)';
+            const mouthF = document.getElementById('mouth');
+            const mouthS = document.getElementById('smouth');
+            if (mouthF) mouthF.style.transform = 'scaleY(1)';
+            if (mouthS) mouthS.style.transform = 'scaleY(1)';
             setAnimRot('left-arm', 0);
             setAnimRot('right-arm', 0);
         }
 
-        // ============ EXPORT (Canvas-based, reliable) ============
+        // ============ FULLSCREEN CLEAN PLAYBACK (for phone screen recorder) ============
+        // Moves the live viewport into a fullscreen black overlay with no UI chrome,
+        // so the person can record it directly with their phone's built-in screen recorder
+        // without ever hitting a browser export/codec error.
+        let fsOriginalParent = null;
+        let fsOriginalNextSibling = null;
+
+        function startFullscreenPlayback() {
+            const overlay = document.getElementById('fullscreenOverlay');
+            const stageWrap = document.getElementById('fullscreenStageWrap');
+
+            fsOriginalParent = viewport.parentElement;
+            fsOriginalNextSibling = viewport.nextSibling;
+
+            stageWrap.appendChild(viewport);
+            overlay.style.display = 'flex';
+
+            // Reset timeline to the start for a clean full playthrough
+            currentPlayheadTime = 0;
+            updateTimeDisplay();
+
+            document.getElementById('fsPlayBtn').innerText = '▶️ Play';
+
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('any').catch(() => {});
+            }
+        }
+
+        function fullscreenPlayPause() {
+            const btn = document.getElementById('fsPlayBtn');
+            if (isPlaying) {
+                pausePlayback();
+                btn.innerText = '▶️ Play';
+            } else {
+                if (currentPlayheadTime >= getTotalTimelineDuration()) currentPlayheadTime = 0;
+                startPlaybackAt(currentPlayheadTime);
+                btn.innerText = '⏸️ Pause';
+            }
+        }
+
+        function exitFullscreenPlayback() {
+            pausePlayback();
+            const overlay = document.getElementById('fullscreenOverlay');
+            overlay.style.display = 'none';
+
+            if (fsOriginalParent) {
+                if (fsOriginalNextSibling) {
+                    fsOriginalParent.insertBefore(viewport, fsOriginalNextSibling);
+                } else {
+                    fsOriginalParent.appendChild(viewport);
+                }
+            }
+        }
+
+        // ============ EXPORT (Canvas-based, fallback method) ============
         async function exportVideo() {
             const exportStatus = document.getElementById('exportStatus');
             const exportBtn = document.getElementById('exportBtn');
